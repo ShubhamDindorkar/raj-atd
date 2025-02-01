@@ -64,8 +64,14 @@ const ClassSelection = () => {
   const [selectedClass, setSelectedClass] = useState('');
   const navigate = useNavigate();
 
-  const handleClassSelect = (className) => {
+  const handleClassSelect = (className, studentCount) => {
     setSelectedClass(className);
+    navigate('/subject', {
+      state: {
+        className,
+        studentCount
+      }
+    });
   };
 
   const handleStartAttendance = () => {
@@ -129,7 +135,7 @@ const ClassSelection = () => {
                 name={classInfo.name}
                 studentCount={classInfo.students}
                 isSelected={selectedClass === classInfo.name}
-                onClick={() => handleClassSelect(classInfo.name)}
+                onClick={() => handleClassSelect(classInfo.name, classInfo.students)}
               />
             ))}
           </AnimatePresence>

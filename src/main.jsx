@@ -4,6 +4,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import Layout from './components/Layout'
 import ClassSelection from './components/ClassSelection'
 import AttendanceScreen from './components/AttendanceScreen'
+import SubjectSelection from './components/SubjectSelection'
 import './index.css'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
@@ -12,6 +13,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
       <Routes>
         <Route path="/" element={<Layout />}>
           <Route index element={<ClassSelection />} />
+          <Route path="subject" element={<SubjectSelection />} />
           <Route path="attendance" element={<AttendanceScreen />} />
         </Route>
       </Routes>
