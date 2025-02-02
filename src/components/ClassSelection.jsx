@@ -1,15 +1,28 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import studentData from '../studentData.json';
 
 const ClassSelection = () => {
   const navigate = useNavigate();
   const teacherData = JSON.parse(sessionStorage.getItem('teacherData') || '{}');
 
+  // Class mapping
+  const classMapping = {
+    'CSE-1': 'classA',
+    'CSE-2': 'classB',
+    'CSE-3': 'classC'
+  };
+
+  const getStudentCount = (className) => {
+    const classKey = classMapping[className];
+    return studentData[classKey]?.length || 0;
+  };
+
   const classes = [
-    { id: '1A', name: 'CSE-1', students: 60 },
-    { id: '1B', name: 'CSE-2', students: 60 },
-    { id: '1C', name: 'CSE-3', students: 60 },
+    { id: '1A', name: 'CSE-1', students: getStudentCount('CSE-1') },
+    { id: '1B', name: 'CSE-2', students: getStudentCount('CSE-2') },
+    { id: '1C', name: 'CSE-3', students: getStudentCount('CSE-3') },
   ];
 
   const handleClassSelect = (classData) => {

@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const exportStudentList = (students, type, subject) => {
+const exportStudentList = (students, type) => {
   const now = new Date();
   const dateStr = now.toLocaleDateString();
   const timeStr = now.toLocaleTimeString();
 
-  const header = `${type} Students List - ${subject} - Generated on ${dateStr} at ${timeStr}\n\n`;
+  const header = `${type} Students List - Generated on ${dateStr} at ${timeStr}\n\n`;
   const content = students
     .map(student => `${student.name} (Roll No: ${student.rollNo.replace(/[^\d]/g, '')})`)
     .join('\n');
@@ -16,33 +16,17 @@ const exportStudentList = (students, type, subject) => {
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
-  link.download = `${type.toLowerCase()}_students_${subject}_${dateStr.replace(/\//g, '-')}.txt`;
+  link.download = `${type.toLowerCase()}_students_${dateStr.replace(/\//g, '-')}.txt`;
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
 };
 
-const TabButton = ({ subject, isActive, onClick }) => (
-  <button
-    onClick={onClick}
-    className={`px-8 py-4 text-2xl font-bold rounded-t-xl transition-all duration-300
-      ${isActive 
-        ? 'bg-white text-blue-600 shadow-lg transform -translate-y-2' 
-        : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
-  >
-    {subject}
-  </button>
-);
-
 const Results = ({ attendanceData, onBack }) => {
-  const [activeSubject, setActiveSubject] = useState('Mathematics');
-  const subjects = ['Mathematics', 'Science', 'English', 'History'];
-
-  const getSubjectStats = (subject) => {
-    const subjectStudents = attendanceData.filter(student => true); // Replace with actual subject filter
-    const presentCount = subjectStudents.filter(student => student.status === 'present').length;
-    const totalCount = subjectStudents.length;
+  const getStats = () => {
+    const presentCount = attendanceData.filter(student => student.status === 'present').length;
+    const totalCount = attendanceData.length;
     return {
       presentCount,
       totalCount,
@@ -50,7 +34,7 @@ const Results = ({ attendanceData, onBack }) => {
     };
   };
 
-  const stats = getSubjectStats(activeSubject);
+  const stats = getStats();
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 p-12">
@@ -61,17 +45,7 @@ const Results = ({ attendanceData, onBack }) => {
         </h1>
       </div>
 
-      {/* Subject Tabs */}
-      <div className="flex justify-center gap-4 mb-8">
-        {subjects.map((subject) => (
-          <TabButton
-            key={subject}
-            subject={subject}
-            isActive={activeSubject === subject}
-            onClick={() => setActiveSubject(subject)}
-          />
-        ))}
-      </div>
+
 
       {/* Progress Circle */}
       <div className="flex justify-center mb-24">
@@ -119,7 +93,6 @@ const Results = ({ attendanceData, onBack }) => {
       {/* Student Lists */}
       <AnimatePresence mode="wait">
         <motion.div
-          key={activeSubject}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -20 }}
@@ -154,8 +127,7 @@ const Results = ({ attendanceData, onBack }) => {
               <button
                 onClick={() => exportStudentList(
                   attendanceData.filter(student => student.status === 'present'),
-                  'Present',
-                  activeSubject
+                  'Present'
                 )}
                 className="px-6 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg shadow-lg hover:from-green-600 hover:to-green-700 transition-all duration-200"
               >
@@ -193,8 +165,7 @@ const Results = ({ attendanceData, onBack }) => {
               <button
                 onClick={() => exportStudentList(
                   attendanceData.filter(student => student.status === 'absent'),
-                  'Absent',
-                  activeSubject
+                  'Absent'
                 )}
                 className="px-6 py-2 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg shadow-lg hover:from-red-600 hover:to-red-700 transition-all duration-200"
               >

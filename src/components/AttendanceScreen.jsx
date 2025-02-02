@@ -37,7 +37,7 @@ const StudentCard = ({ student, onSwipe, style }) => {
         {/* Center - Student Info */}
         <div className="flex-grow flex flex-col items-center justify-center">
           <div className="text-center">
-            <h2 className="text-[200px] font-bold leading-none bg-gradient-to-r from-blue-600 to-purple-600 text-transparent bg-clip-text">
+            <h2 className="text-[12vw] md:text-[10vw] lg:text-[8vw] font-bold leading-tight bg-gradient-to-r from-blue-600 to-purple-600 text-transparent bg-clip-text max-w-[90%] mx-auto break-words">
               {student.name}
             </h2>
             <p className="text-6xl text-gray-700 mt-8 font-semibold">
@@ -71,15 +71,29 @@ const AttendanceScreen = () => {
   const [students, setStudents] = useState([]);
 
   useEffect(() => {
-    // Get the selected class from the location state
+    // Get the selected class and roll range from the location state
     const selectedClass = location.state?.selectedClass || 'classA';
-    // Get students from the selected class and add status field
-    const classStudents = studentData[selectedClass].map(student => ({
+    const rollRange = location.state?.rollRange;
+
+    // Get students from the selected class within the roll range and add status field
+    let classStudents = studentData[selectedClass];
+
+    // Filter students based on roll range if provided
+    if (rollRange && rollRange.start && rollRange.end) {
+      classStudents = classStudents.filter(student => {
+        const rollNo = parseInt(student.rollNo.replace(/[^\d]/g, ''));
+        return rollNo >= rollRange.start && rollNo <= rollRange.end;
+      });
+    }
+
+    // Map students with status
+    classStudents = classStudents.map(student => ({
       ...student,
       status: null
     }));
+
     setStudents(classStudents);
-  }, [location.state?.selectedClass]);
+  }, [location.state?.selectedClass, location.state?.rollRange]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isCompleted, setIsCompleted] = useState(false);
   const [history, setHistory] = useState([]);
@@ -147,7 +161,6 @@ const AttendanceScreen = () => {
 
       {/* Undo Button */}
       <div className="fixed top-20 right-8 z-[100]">
-        {/* Undo Button */}
         <motion.button
           onClick={handleUndo}
           disabled={history.length === 0}
@@ -184,26 +197,6 @@ const AttendanceScreen = () => {
         </AnimatePresence>
       </div>
 
-      {/* Control Buttons */}
-      <div className="fixed bottom-8 left-0 right-0 flex justify-center px-24 z-50">
-        {/* Undo Button */}
-        <motion.button
-          onClick={handleUndo}
-          disabled={history.length === 0}
-          className={`pointer-events-auto p-12 rounded-2xl shadow-2xl transform transition-all duration-300 flex items-center gap-4
-            ${history.length === 0
-              ? 'bg-gray-400 cursor-not-allowed opacity-50'
-              : 'bg-gradient-to-br from-blue-500 to-purple-600 hover:shadow-xl hover:scale-105 hover:from-blue-600 hover:to-purple-700'}
-            text-white`}
-          whileHover={{ scale: history.length === 0 ? 1 : 1.05 }}
-          whileTap={{ scale: history.length === 0 ? 1 : 0.95 }}
-        >
-          <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
-          </svg>
-          <span className="text-3xl font-bold">UNDO</span>
-        </motion.button>
-      </div>
     </div>
   );
 };

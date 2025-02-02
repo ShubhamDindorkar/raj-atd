@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 
@@ -22,14 +22,48 @@ const SubjectSelection = () => {
     { id: 'ps', name: 'Probability & Statistics', icon: '📊' }
   ].filter(subject => allowedSubjects.includes(subject.id));
 
+  const [showRangeModal, setShowRangeModal] = useState(false);
+  const [selectedSubject, setSelectedSubject] = useState(null);
+  const [selectedBatch, setSelectedBatch] = useState(null);
+  const [rollRange, setRollRange] = useState({ start: '', end: '' });
+
   const handleSubjectSelect = (subject) => {
+    setSelectedSubject(subject);
+    setShowRangeModal(true);
+  };
+
+  const handleBatchSelect = (batch) => {
+    setSelectedBatch(batch);
+    if (batch === 'full') {
+      // For full class, navigate directly with full range
+      navigate('/attendance', {
+        state: {
+          className,
+          studentCount,
+          subject: selectedSubject.name,
+          rollRange: { start: 1, end: studentCount },
+          batch: 'full'
+        }
+      });
+      setShowRangeModal(false);
+    }
+  };
+
+  const handleRangeSubmit = () => {
+    if (!rollRange.start || !rollRange.end) {
+      alert('Please enter both start and end roll numbers');
+      return;
+    }
     navigate('/attendance', {
       state: {
         className,
         studentCount,
-        subject: subject.name
+        subject: selectedSubject.name,
+        rollRange,
+        batch: selectedBatch
       }
     });
+    setShowRangeModal(false);
   };
 
   if (subjects.length === 0) {
@@ -71,6 +105,103 @@ const SubjectSelection = () => {
           </motion.div>
         ))}
       </div>
+
+      {/* Batch Selection Modal */}
+      {showRangeModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <motion.div
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="bg-white rounded-2xl p-8 max-w-lg w-full mx-4"
+          >
+            <h3 className="text-2xl font-bold text-gray-800 mb-6">
+              Select Batch for {selectedSubject.name}
+            </h3>
+
+            <div className="grid grid-cols-3 gap-4 mb-8">
+              <button
+                onClick={() => handleBatchSelect('full')}
+                className="p-4 bg-blue-100 rounded-xl text-blue-600 font-semibold hover:bg-blue-200 transition-colors"
+              >
+                Full Class
+              </button>
+              <button
+                onClick={() => {
+                  setSelectedBatch('a1');
+                  setRollRange({ start: '', end: '' });
+                }}
+                className={`p-4 rounded-xl font-semibold transition-colors ${
+                  selectedBatch === 'a1'
+                    ? 'bg-green-500 text-white'
+                    : 'bg-green-100 text-green-600 hover:bg-green-200'
+                }`}
+              >
+                A1 (First Half)
+              </button>
+              <button
+                onClick={() => {
+                  setSelectedBatch('a2');
+                  setRollRange({ start: '', end: '' });
+                }}
+                className={`p-4 rounded-xl font-semibold transition-colors ${
+                  selectedBatch === 'a2'
+                    ? 'bg-purple-500 text-white'
+                    : 'bg-purple-100 text-purple-600 hover:bg-purple-200'
+                }`}
+              >
+                A2 (Second Half)
+              </button>
+            </div>
+
+            {selectedBatch && selectedBatch !== 'full' && (
+              <>
+                <div className="mb-6">
+                  <h4 className="text-lg font-semibold text-gray-700 mb-4">Adjust Roll Number Range</h4>
+                  <div className="flex gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-600 mb-1">Start</label>
+                      <input
+                        type="number"
+                        value={rollRange.start}
+                        onChange={(e) => setRollRange(prev => ({ ...prev, start: parseInt(e.target.value) }))}
+                        min="1"
+                        max={rollRange.end}
+                        className="w-full p-2 border rounded-lg"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-600 mb-1">End</label>
+                      <input
+                        type="number"
+                        value={rollRange.end}
+                        onChange={(e) => setRollRange(prev => ({ ...prev, end: parseInt(e.target.value) }))}
+                        min={rollRange.start}
+                        max={studentCount}
+                        className="w-full p-2 border rounded-lg"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-4">
+                  <button
+                    onClick={() => setShowRangeModal(false)}
+                    className="px-6 py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleRangeSubmit}
+                    className="px-6 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:opacity-90 transition-opacity"
+                  >
+                    Continue
+                  </button>
+                </div>
+              </>
+            )}
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 };
