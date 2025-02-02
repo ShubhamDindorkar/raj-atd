@@ -1,5 +1,8 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
+/* Custom animations and utilities */
 @keyframes fadeIn {
   from {
     opacity: 0;
