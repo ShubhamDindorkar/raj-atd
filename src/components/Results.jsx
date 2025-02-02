@@ -1,26 +1,96 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
+import universityLogo from '../assets/img/DESPU_logo1.jpg';
 
 const exportStudentList = (students, type) => {
   const now = new Date();
   const dateStr = now.toLocaleDateString();
   const timeStr = now.toLocaleTimeString();
 
-  const header = `${type} Students List - Generated on ${dateStr} at ${timeStr}\n\n`;
-  const content = students
-    .map(student => `${student.name} (Roll No: ${student.rollNo.replace(/[^\d]/g, '')})`)
-    .join('\n');
+  // Create PDF document
+  const doc = new jsPDF();
 
-  const fullContent = header + content;
-  const blob = new Blob([fullContent], { type: 'text/plain' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = `${type.toLowerCase()}_students_${dateStr.replace(/\//g, '-')}.txt`;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
+  // Create table headers - without status for present/absent lists
+  const headers = type === 'Complete'
+    ? [['Sr. No.', 'Roll No.', 'Name', 'Status']]
+    : [['Sr. No.', 'Roll No.', 'Name']];
+
+  // Create table data
+  const data = students.map((student, index) => {
+    const baseData = [
+      (index + 1).toString(),
+      student.rollNo.replace(/[^\d]/g, ''),
+      student.name
+    ];
+    return type === 'Complete'
+      ? [...baseData, student.status === 'present' ? 'P' : 'A']
+      : baseData;
+  });
+
+  // Add logo and header on first page before table
+  // Add logo
+  const logoWidth = 25; // mm
+  const logoHeight = (logoWidth * 2150) / 2488; // maintain aspect ratio
+  doc.addImage(universityLogo, 'JPEG', 15, 10, logoWidth, logoHeight);
+
+  // Add header text
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(20);
+  doc.text('DESPU UNIVERSITY', doc.internal.pageSize.width/2, 20, { align: 'center' });
+  doc.setFontSize(16);
+  doc.text('SCHOOL OF ENGINEERING AND TECHNOLOGY', doc.internal.pageSize.width/2, 30, { align: 'center' });
+  doc.setFontSize(14);
+  doc.text(`${type.toUpperCase()} STUDENTS LIST`, doc.internal.pageSize.width/2, 40, { align: 'center' });
+  doc.setFontSize(12);
+  const teacherData = JSON.parse(sessionStorage.getItem('teacherData') || '{}');
+  doc.text(`Subject: ${teacherData.name}`, doc.internal.pageSize.width/2, 50, { align: 'center' });
+  doc.text(`Date: ${dateStr}    Time: ${timeStr}`, doc.internal.pageSize.width/2, 60, { align: 'center' });
+
+  // Add table with optimized settings for more entries per page
+  doc.autoTable({
+    head: headers,
+    body: data,
+    startY: 65, // Start after header on first page
+    theme: 'grid',
+    headStyles: {
+      fillColor: [41, 128, 185],
+      textColor: 255,
+      fontStyle: 'bold',
+      fontSize: 9
+    },
+    styles: {
+      fontSize: 9,
+      cellPadding: 3,
+      halign: 'center',
+      overflow: 'linebreak',
+      lineWidth: 0.1
+    },
+    margin: { top: 10, right: 10, bottom: 10, left: 10 },
+    columnStyles: type === 'Complete'
+      ? {
+          0: { cellWidth: 15 },
+          1: { cellWidth: 25 },
+          2: { cellWidth: 'auto' },
+          3: { cellWidth: 15 }
+        }
+      : {
+          0: { cellWidth: 15 },
+          1: { cellWidth: 25 },
+          2: { cellWidth: 'auto' }
+        },
+    didDrawPage: function(data) {
+      // Reset top margin for all pages after first page
+      if (data.pageNumber > 1) {
+        // Start from the very top on subsequent pages
+        data.settings.startY = 10;
+      }
+    }
+  });
+
+  // Save the PDF
+  doc.save(`${type.toLowerCase()}_students_${dateStr.replace(/\//g, '-')}.pdf`);
 };
 
 const Results = ({ attendanceData, onBack }) => {
@@ -119,7 +189,7 @@ const Results = ({ attendanceData, onBack }) => {
                         {student.rollNo.replace(/[^\d]/g, '')}
                       </span>
                     </div>
-                    <div className="text-2xl text-green-500">✓</div>
+                    <div className="text-2xl text-green-500">P</div>
                   </motion.div>
                 ))}
             </div>
@@ -157,7 +227,7 @@ const Results = ({ attendanceData, onBack }) => {
                         {student.rollNo.replace(/[^\d]/g, '')}
                       </span>
                     </div>
-                    <div className="text-2xl text-red-500">✗</div>
+                    <div className="text-2xl text-red-500">A</div>
                   </motion.div>
                 ))}
             </div>
@@ -174,6 +244,16 @@ const Results = ({ attendanceData, onBack }) => {
             </div>
           </div>
         </motion.div>
+
+        {/* Generate Complete Attendance List Button */}
+        <div className="col-span-2 mt-8 text-center">
+          <button
+            onClick={() => exportStudentList(attendanceData, 'Complete')}
+            className="px-8 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg shadow-lg hover:from-blue-600 hover:to-purple-700 transition-all duration-200 text-xl font-bold"
+          >
+            Generate Complete Attendance List
+          </button>
+        </div>
       </AnimatePresence>
     </div>
   );
