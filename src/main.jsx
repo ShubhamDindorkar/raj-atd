@@ -1,6 +1,6 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom'
 import LandingPage from './components/LandingPage'
 import TeacherLogin from './components/TeacherLogin'
 import AdminLogin from './components/AdminLogin'
@@ -15,7 +15,7 @@ import './index.css'
 const TeacherRoute = ({ children }) => {
   const teacherData = sessionStorage.getItem('teacherData')
   if (!teacherData) {
-    return window.location.href = '/teacher-login'
+    return <Navigate to="/teacher-login" replace />
   }
   return children
 }
@@ -23,14 +23,14 @@ const TeacherRoute = ({ children }) => {
 const AdminRoute = ({ children }) => {
   const adminData = sessionStorage.getItem('adminData')
   if (!adminData) {
-    return window.location.href = '/admin-login'
+    return <Navigate to="/admin-login" replace />
   }
   return children
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <BrowserRouter>
+    <HashRouter>
       <Routes>
         {/* Public Routes */}
         <Route path="/" element={<LandingPage />} />
@@ -51,6 +51,6 @@ ReactDOM.createRoot(document.getElementById('root')).render(
           </AdminRoute>
         } />
       </Routes>
-    </BrowserRouter>
+    </HashRouter>
   </React.StrictMode>,
 )
