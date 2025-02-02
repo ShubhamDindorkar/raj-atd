@@ -117,8 +117,7 @@ const SubjectSelection = () => {
             <h3 className="text-2xl font-bold text-gray-800 mb-6">
               Select Batch for {selectedSubject.name}
             </h3>
-
-            <div className="grid grid-cols-3 gap-4 mb-8">
+              <div className="grid grid-cols-2 gap-4 mb-8">
               <button
                 onClick={() => handleBatchSelect('full')}
                 className="p-4 bg-blue-100 rounded-xl text-blue-600 font-semibold hover:bg-blue-200 transition-colors"
@@ -127,29 +126,16 @@ const SubjectSelection = () => {
               </button>
               <button
                 onClick={() => {
-                  setSelectedBatch('a1');
+                  setSelectedBatch('custom');
                   setRollRange({ start: '', end: '' });
                 }}
                 className={`p-4 rounded-xl font-semibold transition-colors ${
-                  selectedBatch === 'a1'
-                    ? 'bg-green-500 text-white'
-                    : 'bg-green-100 text-green-600 hover:bg-green-200'
-                }`}
-              >
-                A1 (First Half)
-              </button>
-              <button
-                onClick={() => {
-                  setSelectedBatch('a2');
-                  setRollRange({ start: '', end: '' });
-                }}
-                className={`p-4 rounded-xl font-semibold transition-colors ${
-                  selectedBatch === 'a2'
+                  selectedBatch === 'custom'
                     ? 'bg-purple-500 text-white'
                     : 'bg-purple-100 text-purple-600 hover:bg-purple-200'
                 }`}
               >
-                A2 (Second Half)
+                Roll Number Range
               </button>
             </div>
 

@@ -78,12 +78,21 @@ const AttendanceScreen = () => {
     // Get students from the selected class within the roll range and add status field
     let classStudents = studentData[selectedClass];
 
-    // Filter students based on roll range if provided
+    // Filter students based on range if provided
     if (rollRange && rollRange.start && rollRange.end) {
-      classStudents = classStudents.filter(student => {
-        const rollNo = parseInt(student.rollNo.replace(/[^\d]/g, ''));
-        return rollNo >= rollRange.start && rollNo <= rollRange.end;
-      });
+      if (location.state?.batch === 'custom') {
+        // For custom range - filter by actual roll numbers
+        classStudents = classStudents.filter(student => {
+          const rollNo = parseInt(student.rollNo.replace(/[^\d]/g, ''));
+          return rollNo >= rollRange.start && rollNo <= rollRange.end;
+        });
+      } else {
+        // For full class - filter by serial numbers (original logic)
+        classStudents = classStudents.filter(student => {
+          const serialNo = parseInt(student.serialNo);
+          return serialNo >= rollRange.start && serialNo <= rollRange.end;
+        });
+      }
     }
 
     // Map students with status
