@@ -6,21 +6,56 @@ import studentData from '../studentData.json';
 
 const StudentCard = ({ student, onSwipe, style }) => {
   const [dragDirection, setDragDirection] = useState(null);
+  const [touchStart, setTouchStart] = useState(null);
+
+  const handleTouchStart = (e) => {
+    setTouchStart(e.touches[0].clientX);
+  };
+
+  const handleTouchEnd = (e) => {
+    if (!touchStart) return;
+    
+    const touchEnd = e.changedTouches[0].clientX;
+    const swipeDistance = touchEnd - touchStart;
+    
+    // More sensitive threshold for mobile (50px instead of 100px)
+    if (Math.abs(swipeDistance) > 50) {
+      onSwipe(swipeDistance > 0 ? 'present' : 'absent');
+    }
+    
+    setTouchStart(null);
+    setDragDirection(null);
+  };
+
+  const handleTouchMove = (e) => {
+    if (!touchStart) return;
+    
+    const currentTouch = e.touches[0].clientX;
+    const direction = currentTouch > touchStart ? 'right' : currentTouch < touchStart ? 'left' : null;
+    
+    if (direction !== dragDirection) {
+      setDragDirection(direction);
+    }
+  };
 
   return (
     <motion.div
       drag="x"
       dragConstraints={{ left: 0, right: 0 }}
-      dragElastic={0.7}
+      dragElastic={0.9}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
       onDragEnd={(e, { offset }) => {
         const swipe = offset.x;
-        if (Math.abs(swipe) > 100) {
+        if (Math.abs(swipe) > 50) {  // More sensitive threshold
           onSwipe(swipe > 0 ? 'present' : 'absent');
         }
       }}
       style={{
         ...style,
-        willChange: 'transform'
+        willChange: 'transform',
+        touchAction: 'none'  // Prevent default touch behaviors
       }}
       onDrag={(e, { offset }) => {
         const direction = offset.x > 0 ? 'right' : offset.x < 0 ? 'left' : null;
