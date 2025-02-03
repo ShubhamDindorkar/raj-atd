@@ -21,15 +21,22 @@ const MobileStudentCard = ({ student, isEditMode, onStatusChange }) => {
   };
 
   const handleTouchEnd = () => {
-    if (!isEditMode || !touchStart || !touchEnd) return;
-
-    const swipeDistance = touchStart - touchEnd;
-    const minSwipeDistance = 50;
-
-    if (Math.abs(swipeDistance) > minSwipeDistance) {
-      setShowModal(true);
+    if (!isEditMode) {
+      setTouchStart(null);
+      setTouchEnd(null);
+      return;
     }
 
+    if (touchStart && touchEnd) {
+      const swipeDistance = touchStart - touchEnd;
+      const minSwipeDistance = 50;
+
+      if (Math.abs(swipeDistance) > minSwipeDistance) {
+        setShowModal(true);
+      }
+    }
+
+    // Always clean up touch states
     setTouchStart(null);
     setTouchEnd(null);
   };
@@ -54,6 +61,10 @@ const MobileStudentCard = ({ student, isEditMode, onStatusChange }) => {
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
+        onTouchCancel={() => {
+          setTouchStart(null);
+          setTouchEnd(null);
+        }}
       >
         <div className="flex items-center gap-4">
           <div className={`w-10 h-10 rounded-full ${avatarBg} flex items-center justify-center ${avatarText} font-medium`}>
@@ -493,8 +504,18 @@ const Results = ({ attendanceData, onBack }) => {
                           isEditMode ? 'cursor-move hover:scale-105' : ''
                         } draggable-item`}
                         draggable={isEditMode}
-                        onDragStart={(e) => handleDragStart(e, student)}
+                        onDragStart={(e) => {
+                          e.dataTransfer.effectAllowed = 'move';
+                          handleDragStart(e, student);
+                        }}
                         onDragEnd={handleDragEnd}
+                        onTouchStart={(e) => {
+                          // Prevent default only if in edit mode to allow normal touch scrolling
+                          if (isEditMode) {
+                            e.preventDefault();
+                          }
+                        }}
+                        touch-action={isEditMode ? 'none' : 'auto'}
                       >
                         <div className="flex items-center gap-4">
                           <div className="w-10 h-10 rounded-full bg-green-200 flex items-center justify-center text-green-700 font-medium">
