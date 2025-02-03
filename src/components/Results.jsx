@@ -138,6 +138,9 @@ const Results = ({ attendanceData, onBack }) => {
   const [touchStartY, setTouchStartY] = useState(null);
 
   const handleDragStart = (e, student) => {
+    // Only handle drag if in edit mode
+    if (!isEditMode) return;
+
     if (e.type === 'touchstart') {
       setTouchStartY(e.touches[0].clientY);
       e.target.classList.add('dragging');
@@ -157,12 +160,12 @@ const Results = ({ attendanceData, onBack }) => {
   };
 
   const handleTouchMove = (e) => {
-    if (!touchStartY) return;
+    if (!touchStartY || !isEditMode) return;
 
     const touch = e.touches[0];
     const deltaY = touchStartY - touch.clientY;
 
-    // Prevent scrolling while dragging
+    // Prevent scrolling while dragging only in edit mode
     e.preventDefault();
 
     // Add visual feedback during touch move
@@ -171,6 +174,8 @@ const Results = ({ attendanceData, onBack }) => {
   };
 
   const handleDrop = (e, newStatus) => {
+    if (!isEditMode) return;
+
     e.preventDefault();
     let studentToMove = null;
 
