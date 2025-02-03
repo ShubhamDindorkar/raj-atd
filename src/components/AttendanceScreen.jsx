@@ -31,12 +31,13 @@ const StudentCard = ({ student, onSwipe, style }) => {
       className="absolute w-full h-[90vh]"
     >
       <div
-        className={`w-full h-full bg-white shadow-xl transform flex
+        className={`w-full h-full bg-gray-50 shadow-xl transform flex
           ${dragDirection === 'right' ? 'bg-green-50 border-l-4 border-green-500' :
           dragDirection === 'left' ? 'bg-red-50 border-r-4 border-red-500' : ''}`}
         style={{
           transition: 'background-color 0.2s, border 0.2s',
-          willChange: 'background-color, border'
+          willChange: 'background-color, border',
+          backgroundColor: 'white' // Make the card background fully opaque
         }}
       >
         {/* Center - Student Info */}
@@ -62,15 +63,21 @@ const StudentCard = ({ student, onSwipe, style }) => {
         )}
 
         {/* Swipe Instructions */}
-        <div className="absolute bottom-12 left-0 right-0 flex justify-between px-24 pointer-events-none">
-          <div className={`text-3xl font-bold text-red-500 transition-opacity duration-200
-            ${dragDirection === 'left' ? 'opacity-100' : 'opacity-30'}`}>
+        <div className="absolute bottom-12 left-0 right-0 flex justify-between px-24">
+          <button
+            onClick={() => onSwipe('absent')}
+            className={`text-3xl font-bold text-red-500 transition-opacity duration-200 hover:text-red-600
+              ${dragDirection === 'left' ? 'opacity-100' : 'opacity-30'}`}
+          >
             ← ABSENT
-          </div>
-          <div className={`text-3xl font-bold text-green-500 transition-opacity duration-200
-            ${dragDirection === 'right' ? 'opacity-100' : 'opacity-30'}`}>
+          </button>
+          <button
+            onClick={() => onSwipe('present')}
+            className={`text-3xl font-bold text-green-500 transition-opacity duration-200 hover:text-green-600
+              ${dragDirection === 'right' ? 'opacity-100' : 'opacity-30'}`}
+          >
             PRESENT →
-          </div>
+          </button>
         </div>
       </div>
     </motion.div>
