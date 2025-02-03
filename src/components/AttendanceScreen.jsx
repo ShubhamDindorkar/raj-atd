@@ -11,33 +11,38 @@ const StudentCard = ({ student, onSwipe, style }) => {
     <motion.div
       drag="x"
       dragConstraints={{ left: 0, right: 0 }}
-      dragElastic={0.5} // Adjusted value for easier dragging
-      onDragEnd={(e, { offset, velocity }) => {
+      dragElastic={0.7}
+      onDragEnd={(e, { offset }) => {
         const swipe = offset.x;
         if (Math.abs(swipe) > 100) {
           onSwipe(swipe > 0 ? 'present' : 'absent');
         }
       }}
-      style={style}
+      style={{
+        ...style,
+        willChange: 'transform'  // Optimize for animations
+      }}
       onDrag={(e, { offset }) => {
-        setDragDirection(offset.x > 0 ? 'right' : offset.x < 0 ? 'left' : null);
+        const direction = offset.x > 0 ? 'right' : offset.x < 0 ? 'left' : null;
+        if (direction !== dragDirection) {
+          setDragDirection(direction);
+        }
       }}
       className="absolute w-full h-[90vh]"
     >
-      <div className={`w-full h-full bg-white shadow-2xl transform transition-all duration-300 flex
-        ${dragDirection === 'right' ? 'bg-green-50 border-l-[24px] border-green-500' :
-          dragDirection === 'left' ? 'bg-red-50 border-r-[24px] border-red-500' : ''}`}>
-
-        {/* Left Side - Absent Indicator */}
-        <div className={`w-1/6 bg-red-100 flex items-center justify-center transition-opacity duration-300
-          ${dragDirection === 'left' ? 'opacity-100' : 'opacity-0'}`}>
-          <div className="text-red-500 text-[100px]">✗</div>
-        </div>
-
+      <div
+        className={`w-full h-full bg-white shadow-xl transform flex
+          ${dragDirection === 'right' ? 'bg-green-50 border-l-4 border-green-500' :
+          dragDirection === 'left' ? 'bg-red-50 border-r-4 border-red-500' : ''}`}
+        style={{
+          transition: 'background-color 0.2s, border 0.2s',
+          willChange: 'background-color, border'
+        }}
+      >
         {/* Center - Student Info */}
         <div className="flex-grow flex flex-col items-center justify-center">
           <div className="text-center">
-            <h2 className="text-[12vw] md:text-[10vw] lg:text-[8vw] font-bold leading-tight bg-gradient-to-r from-blue-600 to-purple-600 text-transparent bg-clip-text max-w-[90%] mx-auto break-words">
+            <h2 className="text-[10vw] lg:text-[8vw] font-bold leading-tight text-blue-600 max-w-[90%] mx-auto break-words">
               {student.name}
             </h2>
             <p className="text-6xl text-gray-700 mt-8 font-semibold">
@@ -46,18 +51,24 @@ const StudentCard = ({ student, onSwipe, style }) => {
           </div>
         </div>
 
-        {/* Right Side - Present Indicator */}
-        <div className={`w-1/6 bg-green-100 flex items-center justify-center transition-opacity duration-300
-          ${dragDirection === 'right' ? 'opacity-100' : 'opacity-0'}`}>
-          <div className="text-green-500 text-[100px]">✓</div>
-        </div>
+        {/* Status Indicators */}
+        {dragDirection && (
+          <div
+            className={`absolute ${dragDirection === 'left' ? 'left-8' : 'right-8'} top-1/2 -translate-y-1/2
+              text-[80px] font-bold ${dragDirection === 'left' ? 'text-red-500' : 'text-green-500'}`}
+          >
+            {dragDirection === 'left' ? '✗' : '✓'}
+          </div>
+        )}
 
         {/* Swipe Instructions */}
-        <div className="absolute bottom-12 left-0 right-0 flex justify-between px-24">
-          <div className={`text-4xl font-bold text-red-500 transition-opacity ${dragDirection === 'left' ? 'opacity-100' : 'opacity-30'}`}>
+        <div className="absolute bottom-12 left-0 right-0 flex justify-between px-24 pointer-events-none">
+          <div className={`text-3xl font-bold text-red-500 transition-opacity duration-200
+            ${dragDirection === 'left' ? 'opacity-100' : 'opacity-30'}`}>
             ← ABSENT
           </div>
-          <div className={`text-4xl font-bold text-green-500 transition-opacity ${dragDirection === 'right' ? 'opacity-100' : 'opacity-30'}`}>
+          <div className={`text-3xl font-bold text-green-500 transition-opacity duration-200
+            ${dragDirection === 'right' ? 'opacity-100' : 'opacity-30'}`}>
             PRESENT →
           </div>
         </div>
@@ -191,13 +202,13 @@ const AttendanceScreen = () => {
       {/* Cards Container */}
       <div className="flex-1 relative">
         <AnimatePresence>
-          {students.slice(currentIndex).map((student, index) => (
+          {students.slice(currentIndex, currentIndex + 3).map((student, index) => (
             <StudentCard
               key={student.id}
               student={student}
               onSwipe={handleSwipe}
               style={{
-                zIndex: students.length - index,
+                zIndex: 3 - index,
                 scale: index === 0 ? 1 : 1 - index * 0.05,
                 y: index * 20,
               }}
