@@ -1,53 +1,69 @@
 import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useLocation } from 'react-router-dom';
 import Results from './Results';
 import studentData from '../studentData.json';
 
 const StudentCard = ({ student, onSwipe, style }) => {
   const [dragDirection, setDragDirection] = useState(null);
-  const [touchStartX, setTouchStartX] = useState(null);
-  const [currentOffset, setCurrentOffset] = useState(0);
+  const [touchStart, setTouchStart] = useState(null);
 
   const handleTouchStart = (e) => {
-    setTouchStartX(e.touches[0].clientX);
+    setTouchStart(e.touches[0].clientX);
   };
 
-  const handleTouchMove = (e) => {
-    if (!touchStartX) return;
-
-    const currentX = e.touches[0].clientX;
-    const diff = currentX - touchStartX;
-    setCurrentOffset(diff);
-
-    const direction = diff > 0 ? 'right' : diff < 0 ? 'left' : null;
-    setDragDirection(direction);
-
-    // Prevent default scrolling while swiping
-    e.preventDefault();
-  };
-
-  const handleTouchEnd = () => {
-    if (Math.abs(currentOffset) > 50) {
-      onSwipe(currentOffset > 0 ? 'present' : 'absent');
+  const handleTouchEnd = (e) => {
+    if (!touchStart) return;
+    
+    const touchEnd = e.changedTouches[0].clientX;
+    const swipeDistance = touchEnd - touchStart;
+    
+    // More sensitive threshold for mobile (50px instead of 100px)
+    if (Math.abs(swipeDistance) > 50) {
+      onSwipe(swipeDistance > 0 ? 'present' : 'absent');
     }
     
-    // Reset states
-    setTouchStartX(null);
-    setCurrentOffset(0);
+    setTouchStart(null);
     setDragDirection(null);
   };
 
+  const handleTouchMove = (e) => {
+    if (!touchStart) return;
+    
+    const currentTouch = e.touches[0].clientX;
+    const direction = currentTouch > touchStart ? 'right' : currentTouch < touchStart ? 'left' : null;
+    
+    if (direction !== dragDirection) {
+      setDragDirection(direction);
+    }
+  };
+
   return (
-    <div
+    <motion.div
+      drag="x"
+      dragConstraints={{ left: 0, right: 0 }}
+      dragElastic={0.9}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
-      className="absolute w-full h-[80vh] sm:h-[90vh]"
+      onDragEnd={(e, { offset }) => {
+        const swipe = offset.x;
+        if (Math.abs(swipe) > 50) {  // More sensitive threshold
+          onSwipe(swipe > 0 ? 'present' : 'absent');
+        }
+      }}
       style={{
         ...style,
-        transform: `translateX(${currentOffset}px)`,
-        transition: currentOffset === 0 ? 'transform 0.3s' : 'none'
+        willChange: 'transform',
+        touchAction: 'none'  // Prevent default touch behaviors
       }}
+      onDrag={(e, { offset }) => {
+        const direction = offset.x > 0 ? 'right' : offset.x < 0 ? 'left' : null;
+        if (direction !== dragDirection) {
+          setDragDirection(direction);
+        }
+      }}
+      className="absolute w-full h-[80vh] sm:h-[90vh]"
     >
       <div
         className={`w-full h-full bg-gray-50 shadow-xl transform flex
@@ -82,21 +98,23 @@ const StudentCard = ({ student, onSwipe, style }) => {
 
         {/* Swipe Instructions */}
         <div className="absolute bottom-8 sm:bottom-12 left-0 right-0 flex justify-between px-6 sm:px-24">
-          <div
-            className={`text-xl sm:text-2xl md:text-3xl font-bold text-red-500 transition-opacity duration-200
+          <button
+            onClick={() => onSwipe('absent')}
+            className={`text-xl sm:text-2xl md:text-3xl font-bold text-red-500 transition-opacity duration-200 hover:text-red-600
               ${dragDirection === 'left' ? 'opacity-100' : 'opacity-30'}`}
           >
             ← ABSENT
-          </div>
-          <div
-            className={`text-xl sm:text-2xl md:text-3xl font-bold text-green-500 transition-opacity duration-200
+          </button>
+          <button
+            onClick={() => onSwipe('present')}
+            className={`text-xl sm:text-2xl md:text-3xl font-bold text-green-500 transition-opacity duration-200 hover:text-green-600
               ${dragDirection === 'right' ? 'opacity-100' : 'opacity-30'}`}
           >
             PRESENT →
-          </div>
+          </button>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 };
 
@@ -188,23 +206,23 @@ const AttendanceScreen = () => {
     <div className="flex flex-col h-screen bg-gradient-to-b from-gray-50 to-gray-100 overflow-hidden">
       {/* Progress Bar */}
       <div className="w-full h-6 sm:h-10 bg-gray-200 relative">
-        <div
+        <motion.div
           className="h-full bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 relative"
-          style={{
-            width: `${getProgress()}%`
-          }}
+          initial={{ width: 0 }}
+          animate={{ width: `${getProgress()}%` }}
+          transition={{ duration: 0.5 }}
         >
           <div className="absolute inset-0 flex items-center justify-end pr-4 sm:pr-8">
             <span className="text-2xl sm:text-4xl font-bold text-white">
               {Math.round(getProgress())}%
             </span>
           </div>
-        </div>
+        </motion.div>
       </div>
 
       {/* Undo Button */}
       <div className="fixed top-24 sm:top-28 right-4 sm:right-8 z-[100]">
-        <button
+        <motion.button
           onClick={handleUndo}
           disabled={history.length === 0}
           className={`pointer-events-auto p-4 sm:p-6 rounded-xl shadow-lg transform transition-all duration-300 flex items-center gap-2 sm:gap-3
@@ -212,28 +230,32 @@ const AttendanceScreen = () => {
               ? 'bg-gray-400 cursor-not-allowed opacity-50'
               : 'bg-gradient-to-br from-blue-500 to-purple-600 hover:shadow-xl hover:scale-105 hover:from-blue-600 hover:to-purple-700'}
             text-white`}
+          whileHover={{ scale: history.length === 0 ? 1 : 1.05 }}
+          whileTap={{ scale: history.length === 0 ? 1 : 0.95 }}
         >
           <svg className="w-6 h-6 sm:w-8 sm:h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
           </svg>
           <span className="text-lg sm:text-xl font-bold">UNDO</span>
-        </button>
+        </motion.button>
       </div>
 
       {/* Cards Container */}
       <div className="flex-1 relative">
-        {students.slice(currentIndex, currentIndex + 3).map((student, index) => (
-          <StudentCard
-            key={student.id}
-            student={student}
-            onSwipe={handleSwipe}
-            style={{
-              zIndex: 3 - index,
-              scale: index === 0 ? 1 : 1 - index * 0.05,
-              y: index * 20,
-            }}
-          />
-        ))}
+        <AnimatePresence>
+          {students.slice(currentIndex, currentIndex + 3).map((student, index) => (
+            <StudentCard
+              key={student.id}
+              student={student}
+              onSwipe={handleSwipe}
+              style={{
+                zIndex: 3 - index,
+                scale: index === 0 ? 1 : 1 - index * 0.05,
+                y: index * 20,
+              }}
+            />
+          ))}
+        </AnimatePresence>
       </div>
 
     </div>
