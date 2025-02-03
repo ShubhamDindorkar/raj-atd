@@ -11,7 +11,7 @@ const StudentCard = ({ student, onSwipe, style }) => {
     <motion.div
       drag="x"
       dragConstraints={{ left: 0, right: 0 }}
-      dragElastic={0.7}
+      dragElastic={0.5} // Adjusted value for easier dragging
       onDragEnd={(e, { offset, velocity }) => {
         const swipe = offset.x;
         if (Math.abs(swipe) > 100) {
