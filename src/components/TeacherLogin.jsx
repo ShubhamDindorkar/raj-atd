@@ -29,12 +29,14 @@ const TeacherLogin = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center 
-                    bg-gradient-to-br from-gray-50 to-gray-100 
-                    dark:from-gray-900 dark:to-gray-800 transition-colors duration-300">
+                    bg-gradient-to-br from-blue-100 via-purple-50 to-pink-100
+                    dark:from-blue-950 dark:via-purple-900 dark:to-gray-900
+                    transition-colors duration-300">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white dark:bg-gray-800 p-12 rounded-3xl shadow-xl w-[600px]
+        className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm
+                   p-12 rounded-3xl shadow-xl w-[600px]
                    dark:shadow-gray-900/50"
       >
         <h1 className="text-4xl font-bold text-center mb-12 
