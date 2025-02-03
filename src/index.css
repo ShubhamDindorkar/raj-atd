@@ -23,3 +23,17 @@
     transform: scale(1.02);
   }
 }
+
+/* Add smooth transition for dark mode */
+html {
+  transition: background-color 0.3s ease;
+}
+
+/* Dark mode styles */
+.dark {
+  @apply bg-gray-900 text-white;
+}
+
+.dark body {
+  @apply bg-gray-900;
+}
