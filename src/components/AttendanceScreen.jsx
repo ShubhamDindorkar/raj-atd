@@ -6,56 +6,21 @@ import studentData from '../studentData.json';
 
 const StudentCard = ({ student, onSwipe, style }) => {
   const [dragDirection, setDragDirection] = useState(null);
-  const [touchStart, setTouchStart] = useState(null);
-
-  const handleTouchStart = (e) => {
-    setTouchStart(e.touches[0].clientX);
-  };
-
-  const handleTouchEnd = (e) => {
-    if (!touchStart) return;
-    
-    const touchEnd = e.changedTouches[0].clientX;
-    const swipeDistance = touchEnd - touchStart;
-    
-    // More sensitive threshold for mobile (50px instead of 100px)
-    if (Math.abs(swipeDistance) > 50) {
-      onSwipe(swipeDistance > 0 ? 'present' : 'absent');
-    }
-    
-    setTouchStart(null);
-    setDragDirection(null);
-  };
-
-  const handleTouchMove = (e) => {
-    if (!touchStart) return;
-    
-    const currentTouch = e.touches[0].clientX;
-    const direction = currentTouch > touchStart ? 'right' : currentTouch < touchStart ? 'left' : null;
-    
-    if (direction !== dragDirection) {
-      setDragDirection(direction);
-    }
-  };
 
   return (
     <motion.div
       drag="x"
       dragConstraints={{ left: 0, right: 0 }}
-      dragElastic={0.9}
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
+      dragElastic={0.7}
       onDragEnd={(e, { offset }) => {
         const swipe = offset.x;
-        if (Math.abs(swipe) > 50) {  // More sensitive threshold
+        if (Math.abs(swipe) > 100) {
           onSwipe(swipe > 0 ? 'present' : 'absent');
         }
       }}
       style={{
         ...style,
-        willChange: 'transform',
-        touchAction: 'none'  // Prevent default touch behaviors
+        willChange: 'transform'  // Optimize for animations
       }}
       onDrag={(e, { offset }) => {
         const direction = offset.x > 0 ? 'right' : offset.x < 0 ? 'left' : null;
@@ -63,7 +28,7 @@ const StudentCard = ({ student, onSwipe, style }) => {
           setDragDirection(direction);
         }
       }}
-      className="absolute w-full h-[80vh] sm:h-[90vh]"
+      className="absolute w-full h-[90vh]"
     >
       <div
         className={`w-full h-full bg-gray-50 shadow-xl transform flex
@@ -71,16 +36,17 @@ const StudentCard = ({ student, onSwipe, style }) => {
           dragDirection === 'left' ? 'bg-red-50 border-r-4 border-red-500' : ''}`}
         style={{
           transition: 'background-color 0.2s, border 0.2s',
-          willChange: 'background-color, border'
+          willChange: 'background-color, border',
+          backgroundColor: 'white' // Make the card background fully opaque
         }}
       >
         {/* Center - Student Info */}
-        <div className="flex-grow flex flex-col items-center justify-center p-4">
-          <div className="text-center w-full">
-            <h2 className="text-4xl sm:text-[8vw] md:text-[6vw] font-bold leading-tight text-blue-600 break-words max-w-[90%] mx-auto">
+        <div className="flex-grow flex flex-col items-center justify-center">
+          <div className="text-center">
+            <h2 className="text-[10vw] lg:text-[8vw] font-bold leading-tight text-blue-600 max-w-[90%] mx-auto break-words">
               {student.name}
             </h2>
-            <p className="text-3xl sm:text-5xl md:text-6xl text-gray-700 mt-4 sm:mt-8 font-semibold">
+            <p className="text-6xl text-gray-700 mt-8 font-semibold">
               {student.rollNo.replace(/[^\d]/g, '')}
             </p>
           </div>
@@ -89,25 +55,25 @@ const StudentCard = ({ student, onSwipe, style }) => {
         {/* Status Indicators */}
         {dragDirection && (
           <div
-            className={`absolute ${dragDirection === 'left' ? 'left-4 sm:left-8' : 'right-4 sm:right-8'} top-1/2 -translate-y-1/2
-              text-4xl sm:text-[80px] font-bold ${dragDirection === 'left' ? 'text-red-500' : 'text-green-500'}`}
+            className={`absolute ${dragDirection === 'left' ? 'left-8' : 'right-8'} top-1/2 -translate-y-1/2
+              text-[80px] font-bold ${dragDirection === 'left' ? 'text-red-500' : 'text-green-500'}`}
           >
             {dragDirection === 'left' ? '✗' : '✓'}
           </div>
         )}
 
         {/* Swipe Instructions */}
-        <div className="absolute bottom-8 sm:bottom-12 left-0 right-0 flex justify-between px-6 sm:px-24">
+        <div className="absolute bottom-12 left-0 right-0 flex justify-between px-24">
           <button
             onClick={() => onSwipe('absent')}
-            className={`text-xl sm:text-2xl md:text-3xl font-bold text-red-500 transition-opacity duration-200 hover:text-red-600
+            className={`text-3xl font-bold text-red-500 transition-opacity duration-200 hover:text-red-600
               ${dragDirection === 'left' ? 'opacity-100' : 'opacity-30'}`}
           >
             ← ABSENT
           </button>
           <button
             onClick={() => onSwipe('present')}
-            className={`text-xl sm:text-2xl md:text-3xl font-bold text-green-500 transition-opacity duration-200 hover:text-green-600
+            className={`text-3xl font-bold text-green-500 transition-opacity duration-200 hover:text-green-600
               ${dragDirection === 'right' ? 'opacity-100' : 'opacity-30'}`}
           >
             PRESENT →
@@ -205,15 +171,15 @@ const AttendanceScreen = () => {
   return (
     <div className="flex flex-col h-screen bg-gradient-to-b from-gray-50 to-gray-100 overflow-hidden">
       {/* Progress Bar */}
-      <div className="w-full h-6 sm:h-10 bg-gray-200 relative">
+      <div className="w-full h-10 bg-gray-200 relative">
         <motion.div
           className="h-full bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 relative"
           initial={{ width: 0 }}
           animate={{ width: `${getProgress()}%` }}
           transition={{ duration: 0.5 }}
         >
-          <div className="absolute inset-0 flex items-center justify-end pr-4 sm:pr-8">
-            <span className="text-2xl sm:text-4xl font-bold text-white">
+          <div className="absolute inset-0 flex items-center justify-end pr-8">
+            <span className="text-4xl font-bold text-white">
               {Math.round(getProgress())}%
             </span>
           </div>
@@ -221,11 +187,11 @@ const AttendanceScreen = () => {
       </div>
 
       {/* Undo Button */}
-      <div className="fixed top-24 sm:top-28 right-4 sm:right-8 z-[100]">
+      <div className="fixed top-20 right-8 z-[100]">
         <motion.button
           onClick={handleUndo}
           disabled={history.length === 0}
-          className={`pointer-events-auto p-4 sm:p-6 rounded-xl shadow-lg transform transition-all duration-300 flex items-center gap-2 sm:gap-3
+          className={`pointer-events-auto p-6 rounded-xl shadow-lg transform transition-all duration-300 flex items-center gap-3
             ${history.length === 0
               ? 'bg-gray-400 cursor-not-allowed opacity-50'
               : 'bg-gradient-to-br from-blue-500 to-purple-600 hover:shadow-xl hover:scale-105 hover:from-blue-600 hover:to-purple-700'}
@@ -233,10 +199,10 @@ const AttendanceScreen = () => {
           whileHover={{ scale: history.length === 0 ? 1 : 1.05 }}
           whileTap={{ scale: history.length === 0 ? 1 : 0.95 }}
         >
-          <svg className="w-6 h-6 sm:w-8 sm:h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
           </svg>
-          <span className="text-lg sm:text-xl font-bold">UNDO</span>
+          <span className="text-xl font-bold">UNDO</span>
         </motion.button>
       </div>
 
