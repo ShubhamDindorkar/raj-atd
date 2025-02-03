@@ -28,26 +28,38 @@ const TeacherLogin = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
+    <div className="min-h-screen flex items-center justify-center 
+                    bg-gradient-to-br from-gray-50 to-gray-100 
+                    dark:from-gray-900 dark:to-gray-800 transition-colors duration-300">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white p-12 rounded-3xl shadow-xl w-[600px]"
+        className="bg-white dark:bg-gray-800 p-12 rounded-3xl shadow-xl w-[600px]
+                   dark:shadow-gray-900/50"
       >
-        <h1 className="text-4xl font-bold text-center mb-12 bg-gradient-to-r from-blue-600 to-purple-600 text-transparent bg-clip-text">
+        <h1 className="text-4xl font-bold text-center mb-12 
+                      bg-gradient-to-r from-blue-600 to-purple-600 
+                      text-transparent bg-clip-text">
           Teacher Login
         </h1>
 
         <form onSubmit={handleLogin} className="space-y-8">
           <div>
-            <label className="block text-2xl font-semibold text-gray-700 mb-3">
+            <label className="block text-2xl font-semibold text-gray-700 dark:text-gray-300 mb-3">
               Username
             </label>
             <input
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="w-full px-6 py-4 text-xl border-2 border-gray-300 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+              className="w-full px-6 py-4 text-xl 
+                         border-2 border-gray-300 dark:border-gray-600 
+                         rounded-xl 
+                         focus:border-blue-500 dark:focus:border-blue-400 
+                         focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 
+                         outline-none transition-all
+                         bg-white dark:bg-gray-700
+                         text-gray-900 dark:text-white"
               placeholder="Enter your username"
               required
               disabled={isLoading}
@@ -55,7 +67,7 @@ const TeacherLogin = () => {
           </div>
 
           <div>
-            <label className="block text-2xl font-semibold text-gray-700 mb-3">
+            <label className="block text-2xl font-semibold text-gray-700 dark:text-gray-300 mb-3">
               Password
             </label>
             <div className="relative">
@@ -63,7 +75,14 @@ const TeacherLogin = () => {
                 type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-6 py-4 text-xl border-2 border-gray-300 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                className="w-full px-6 py-4 text-xl 
+                           border-2 border-gray-300 dark:border-gray-600 
+                           rounded-xl 
+                           focus:border-blue-500 dark:focus:border-blue-400 
+                           focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 
+                           outline-none transition-all
+                           bg-white dark:bg-gray-700
+                           text-gray-900 dark:text-white"
                 placeholder="Enter your password"
                 required
                 disabled={isLoading}
@@ -71,7 +90,10 @@ const TeacherLogin = () => {
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors"
+                className="absolute right-4 top-1/2 -translate-y-1/2 
+                           text-gray-500 dark:text-gray-400 
+                           hover:text-gray-700 dark:hover:text-gray-200 
+                           transition-colors"
               >
                 {showPassword ? (
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -88,7 +110,7 @@ const TeacherLogin = () => {
           </div>
 
           {error && (
-            <div className="text-red-500 text-xl text-center font-semibold">
+            <div className="text-red-500 dark:text-red-400 text-xl text-center font-semibold">
               {error}
             </div>
           )}
@@ -97,8 +119,10 @@ const TeacherLogin = () => {
             <button
               type="submit"
               disabled={isLoading}
-              className={`w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white text-2xl font-bold py-4 rounded-xl 
-                ${isLoading ? 'opacity-70 cursor-not-allowed' : 'hover:opacity-90'} transition-opacity`}
+              className={`w-full bg-gradient-to-r from-blue-600 to-purple-600 
+                         text-white text-2xl font-bold py-4 rounded-xl 
+                         ${isLoading ? 'opacity-70 cursor-not-allowed' : 'hover:opacity-90'} 
+                         transition-opacity`}
             >
               {isLoading ? (
                 <div className="flex items-center justify-center gap-3">
@@ -114,7 +138,11 @@ const TeacherLogin = () => {
             <button
               type="button"
               onClick={() => navigate('/')}
-              className="w-full bg-gray-100 text-gray-700 text-xl font-semibold py-4 rounded-xl hover:bg-gray-200 transition-colors"
+              className="w-full bg-gray-100 dark:bg-gray-700 
+                         text-gray-700 dark:text-gray-300 
+                         text-xl font-semibold py-4 rounded-xl 
+                         hover:bg-gray-200 dark:hover:bg-gray-600 
+                         transition-colors"
             >
               Back to Home
             </button>
