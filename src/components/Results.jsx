@@ -163,14 +163,38 @@ const Results = ({ attendanceData, onBack }) => {
     if (!touchStartY || !isEditMode) return;
 
     const touch = e.touches[0];
+    const element = e.target;
     const deltaY = touchStartY - touch.clientY;
+    const deltaX = touch.clientX - element.getBoundingClientRect().left;
 
     // Prevent scrolling while dragging only in edit mode
     e.preventDefault();
 
     // Add visual feedback during touch move
-    const element = e.target;
-    element.style.transform = `translateY(${-deltaY}px)`;
+    element.style.transform = `translate(${deltaX}px, ${-deltaY}px)`;
+    element.style.opacity = '0.8';
+    element.style.boxShadow = '0 10px 20px rgba(0,0,0,0.2)';
+    element.style.zIndex = '1000';
+
+    // Check which list we're hovering over
+    const presentList = document.querySelector('.present-list');
+    const absentList = document.querySelector('.absent-list');
+
+    // Remove previous hover effects
+    presentList?.classList.remove('drag-over');
+    absentList?.classList.remove('drag-over');
+
+    // Get the element we're currently hovering over
+    const elementAtPoint = document.elementFromPoint(touch.clientX, touch.clientY);
+    const hoveredPresentList = elementAtPoint?.closest('.present-list');
+    const hoveredAbsentList = elementAtPoint?.closest('.absent-list');
+
+    // Add hover effect to the appropriate list
+    if (hoveredPresentList) {
+      hoveredPresentList.classList.add('drag-over');
+    } else if (hoveredAbsentList) {
+      hoveredAbsentList.classList.add('drag-over');
+    }
   };
 
   const handleDrop = (e, newStatus) => {
@@ -181,6 +205,31 @@ const Results = ({ attendanceData, onBack }) => {
 
     if (e.type === 'touchend') {
       studentToMove = draggedStudent;
+      if (!studentToMove) return;
+
+      // Get the drop target element
+      const dropTarget = document.elementFromPoint(
+        e.changedTouches[0].clientX,
+        e.changedTouches[0].clientY
+      );
+
+      // Check if we're dropping on the correct list
+      const droppedOnPresentList = dropTarget?.closest('.present-list');
+      const droppedOnAbsentList = dropTarget?.closest('.absent-list');
+
+      // Determine the new status based on where it was dropped
+      if (droppedOnPresentList) {
+        newStatus = 'present';
+      } else if (droppedOnAbsentList) {
+        newStatus = 'absent';
+      } else {
+        // If not dropped on either list, return to original position
+        setDraggedStudent(null);
+        setTouchStartY(null);
+        e.target.style.transform = '';
+        return;
+      }
+
       setDraggedStudent(null);
       setTouchStartY(null);
       e.target.style.transform = '';
@@ -209,7 +258,18 @@ const Results = ({ attendanceData, onBack }) => {
     if (e.type === 'touchend') {
       setDraggedStudent(null);
       setTouchStartY(null);
+
+      // Clean up all styles
       e.target.style.transform = '';
+      e.target.style.opacity = '';
+      e.target.style.boxShadow = '';
+      e.target.style.zIndex = '';
+
+      // Remove drag-over class from lists
+      const presentList = document.querySelector('.present-list');
+      const absentList = document.querySelector('.absent-list');
+      presentList?.classList.remove('drag-over');
+      absentList?.classList.remove('drag-over');
     }
     e.target.classList.remove('dragging');
   };
@@ -377,7 +437,7 @@ const Results = ({ attendanceData, onBack }) => {
                 </span>
               </div>
               <div
-                className="overflow-y-auto max-h-[400px] scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 pr-4 space-y-3 drop-target"
+                className="absent-list overflow-y-auto max-h-[400px] scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 pr-4 space-y-3 drop-target"
                 onDragOver={(e) => {
                   handleDragOver(e);
                   e.currentTarget.classList.add('drag-over');
@@ -387,11 +447,11 @@ const Results = ({ attendanceData, onBack }) => {
                 }}
                 onDrop={(e) => {
                   e.currentTarget.classList.remove('drag-over');
-                  handleDrop(e, 'present');
+                  handleDrop(e, 'absent');
                 }}
                 onTouchEnd={(e) => {
                   e.currentTarget.classList.remove('drag-over');
-                  handleDrop(e, 'present');
+                  handleDrop(e, 'absent');
                 }}
               >
                 {students
