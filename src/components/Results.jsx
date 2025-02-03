@@ -134,143 +134,39 @@ const Results = ({ attendanceData, onBack }) => {
     };
   };
 
-  const [draggedStudent, setDraggedStudent] = useState(null);
-  const [touchStartY, setTouchStartY] = useState(null);
-
   const handleDragStart = (e, student) => {
-    // Only handle drag if in edit mode
-    if (!isEditMode) return;
-
-    if (e.type === 'touchstart') {
-      setTouchStartY(e.touches[0].clientY);
-      e.target.classList.add('dragging');
-      setDraggedStudent(student);
-      return;
-    }
-    // Desktop drag handling
+    // Set the dragged student data
     e.dataTransfer.setData('application/json', JSON.stringify(student));
+    // Add a visual effect to the dragged element
     e.target.classList.add('dragging');
   };
 
   const handleDragOver = (e) => {
     e.preventDefault();
-    if (e.dataTransfer) {
-      e.dataTransfer.dropEffect = 'move';
-    }
-  };
-
-  const handleTouchMove = (e) => {
-    if (!touchStartY || !isEditMode) return;
-
-    const touch = e.touches[0];
-    const element = e.target;
-    const deltaY = touchStartY - touch.clientY;
-    const deltaX = touch.clientX - element.getBoundingClientRect().left;
-
-    // Prevent scrolling while dragging only in edit mode
-    e.preventDefault();
-
-    // Add visual feedback during touch move
-    element.style.transform = `translate(${deltaX}px, ${-deltaY}px)`;
-    element.style.opacity = '0.8';
-    element.style.boxShadow = '0 10px 20px rgba(0,0,0,0.2)';
-    element.style.zIndex = '1000';
-
-    // Check which list we're hovering over
-    const presentList = document.querySelector('.present-list');
-    const absentList = document.querySelector('.absent-list');
-
-    // Remove previous hover effects
-    presentList?.classList.remove('drag-over');
-    absentList?.classList.remove('drag-over');
-
-    // Get the element we're currently hovering over
-    const elementAtPoint = document.elementFromPoint(touch.clientX, touch.clientY);
-    const hoveredPresentList = elementAtPoint?.closest('.present-list');
-    const hoveredAbsentList = elementAtPoint?.closest('.absent-list');
-
-    // Add hover effect to the appropriate list
-    if (hoveredPresentList) {
-      hoveredPresentList.classList.add('drag-over');
-    } else if (hoveredAbsentList) {
-      hoveredAbsentList.classList.add('drag-over');
-    }
+    e.dataTransfer.dropEffect = 'move';
   };
 
   const handleDrop = (e, newStatus) => {
-    if (!isEditMode) return;
-
     e.preventDefault();
-    let studentToMove = null;
-
-    if (e.type === 'touchend') {
-      studentToMove = draggedStudent;
-      if (!studentToMove) return;
-
-      // Get the drop target element
-      const dropTarget = document.elementFromPoint(
-        e.changedTouches[0].clientX,
-        e.changedTouches[0].clientY
-      );
-
-      // Check if we're dropping on the correct list
-      const droppedOnPresentList = dropTarget?.closest('.present-list');
-      const droppedOnAbsentList = dropTarget?.closest('.absent-list');
-
-      // Determine the new status based on where it was dropped
-      if (droppedOnPresentList) {
-        newStatus = 'present';
-      } else if (droppedOnAbsentList) {
-        newStatus = 'absent';
-      } else {
-        // If not dropped on either list, return to original position
-        setDraggedStudent(null);
-        setTouchStartY(null);
-        e.target.style.transform = '';
-        return;
-      }
-
-      setDraggedStudent(null);
-      setTouchStartY(null);
-      e.target.style.transform = '';
-    } else {
-      try {
-        studentToMove = JSON.parse(e.dataTransfer.getData('application/json'));
-      } catch (error) {
-        console.error('Error during drop:', error);
-        return;
-      }
-    }
-
-    if (studentToMove && studentToMove.status !== newStatus) {
-      setStudents(prevStudents => {
-        return prevStudents.map(student => {
-          if (student.id === studentToMove.id && student.rollNo === studentToMove.rollNo) {
-            return { ...student, status: newStatus };
-          }
-          return student;
+    try {
+      const draggedStudent = JSON.parse(e.dataTransfer.getData('application/json'));
+      if (draggedStudent && draggedStudent.status !== newStatus) {
+        setStudents(prevStudents => {
+          return prevStudents.map(student => {
+            if (student.id === draggedStudent.id && student.rollNo === draggedStudent.rollNo) {
+              return { ...student, status: newStatus };
+            }
+            return student;
+          });
         });
-      });
+      }
+    } catch (error) {
+      console.error('Error during drop:', error);
     }
   };
 
   const handleDragEnd = (e) => {
-    if (e.type === 'touchend') {
-      setDraggedStudent(null);
-      setTouchStartY(null);
-
-      // Clean up all styles
-      e.target.style.transform = '';
-      e.target.style.opacity = '';
-      e.target.style.boxShadow = '';
-      e.target.style.zIndex = '';
-
-      // Remove drag-over class from lists
-      const presentList = document.querySelector('.present-list');
-      const absentList = document.querySelector('.absent-list');
-      presentList?.classList.remove('drag-over');
-      absentList?.classList.remove('drag-over');
-    }
+    // Remove visual effect
     e.target.classList.remove('dragging');
   };
 
@@ -437,7 +333,7 @@ const Results = ({ attendanceData, onBack }) => {
                 </span>
               </div>
               <div
-                className="absent-list overflow-y-auto max-h-[400px] scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 pr-4 space-y-3 drop-target"
+                className="overflow-y-auto max-h-[400px] scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 pr-4 space-y-3 drop-target"
                 onDragOver={(e) => {
                   handleDragOver(e);
                   e.currentTarget.classList.add('drag-over');
@@ -447,11 +343,7 @@ const Results = ({ attendanceData, onBack }) => {
                 }}
                 onDrop={(e) => {
                   e.currentTarget.classList.remove('drag-over');
-                  handleDrop(e, 'absent');
-                }}
-                onTouchEnd={(e) => {
-                  e.currentTarget.classList.remove('drag-over');
-                  handleDrop(e, 'absent');
+                  handleDrop(e, 'present');
                 }}
               >
                 {students
@@ -462,15 +354,12 @@ const Results = ({ attendanceData, onBack }) => {
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.1 }}
-                      className={`p-4 rounded-xl bg-red-50 border border-red-100 hover:shadow-md transition-all flex items-center justify-between group ${
+                      className={`p-4 rounded-xl bg-green-50 border border-green-100 hover:shadow-md transition-all flex items-center justify-between group ${
                         isEditMode ? 'cursor-move hover:scale-105' : ''
                       } draggable-item`}
                       draggable={isEditMode}
                       onDragStart={(e) => handleDragStart(e, student)}
                       onDragEnd={handleDragEnd}
-                      onTouchStart={(e) => handleDragStart(e, student)}
-                      onTouchMove={handleTouchMove}
-                      onTouchEnd={handleDragEnd}
                     >
                       <div className="flex items-center gap-4">
                         <div className="w-10 h-10 rounded-full bg-green-200 flex items-center justify-center text-green-700 font-medium">
@@ -498,8 +387,8 @@ const Results = ({ attendanceData, onBack }) => {
               <div className="mt-6">
                 <button
                   onClick={() => exportStudentList(
-                    students.filter(student => student.status === 'present'),
-                    'Present'
+                    students.filter(student => student.status === 'absent'),
+                    'Absent'
                   )}
                   className="w-full px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl shadow-lg hover:from-green-600 hover:to-green-700 transition-all duration-200 flex items-center justify-center gap-2"
                 >
