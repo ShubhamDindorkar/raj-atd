@@ -93,10 +93,38 @@ const exportStudentList = (students, type) => {
   doc.save(`${type.toLowerCase()}_students_${dateStr.replace(/\//g, '-')}.pdf`);
 };
 
+// Add styles for drag and drop
+const dragStyles = `
+  .draggable-item {
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .draggable-item.dragging {
+    opacity: 0.5;
+    transform: scale(1.05);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+  }
+  .drop-target {
+    transition: background-color 0.2s;
+  }
+  .drop-target.drag-over {
+    background-color: rgba(0,0,0,0.05);
+  }
+`;
+
 const Results = ({ attendanceData, onBack }) => {
+  // Add styles to document
+  React.useEffect(() => {
+    const styleSheet = document.createElement("style");
+    styleSheet.innerText = dragStyles;
+    document.head.appendChild(styleSheet);
+    return () => styleSheet.remove();
+  }, []);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [students, setStudents] = useState(attendanceData);
+
   const getStats = () => {
-    const presentCount = attendanceData.filter(student => student.status === 'present').length;
-    const totalCount = attendanceData.length;
+    const presentCount = students.filter(student => student.status === 'present').length;
+    const totalCount = students.length;
     const absentCount = totalCount - presentCount;
     return {
       presentCount,
@@ -106,23 +134,79 @@ const Results = ({ attendanceData, onBack }) => {
     };
   };
 
+  const handleDragStart = (e, student) => {
+    // Set the dragged student data
+    e.dataTransfer.setData('application/json', JSON.stringify(student));
+    // Add a visual effect to the dragged element
+    e.target.classList.add('dragging');
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleDrop = (e, newStatus) => {
+    e.preventDefault();
+    try {
+      const draggedStudent = JSON.parse(e.dataTransfer.getData('application/json'));
+      if (draggedStudent && draggedStudent.status !== newStatus) {
+        setStudents(prevStudents => {
+          return prevStudents.map(student => {
+            if (student.id === draggedStudent.id && student.rollNo === draggedStudent.rollNo) {
+              return { ...student, status: newStatus };
+            }
+            return student;
+          });
+        });
+      }
+    } catch (error) {
+      console.error('Error during drop:', error);
+    }
+  };
+
+  const handleDragEnd = (e) => {
+    // Remove visual effect
+    e.target.classList.remove('dragging');
+  };
+
   const stats = getStats();
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 p-8 md:p-12">
-      {/* Header with Back Button */}
+      {/* Header with Back Button and Edit Mode Toggle */}
       <div className="max-w-7xl mx-auto relative mb-12">
-        <button
-          onClick={onBack}
-          className="absolute left-0 top-1/2 -translate-y-1/2 flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
-          aria-label="Go back"
-        >
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-          </svg>
-          <span>Back</span>
-        </button>
-        <h1 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 text-transparent bg-clip-text text-center">
+        <div className="flex justify-between items-center">
+          <button
+            onClick={onBack}
+            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
+            aria-label="Go back"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            <span>Back</span>
+          </button>
+
+          <button
+            onClick={() => setIsEditMode(!isEditMode)}
+            className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-all ${
+              isEditMode
+                ? 'bg-green-500 text-white hover:bg-green-600'
+                : 'bg-blue-500 text-white hover:bg-blue-600'
+            }`}
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              {isEditMode ? (
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              ) : (
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+              )}
+            </svg>
+            {isEditMode ? 'Save Changes' : 'Edit Mode'}
+          </button>
+        </div>
+        <h1 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 text-transparent bg-clip-text text-center mt-4">
           Attendance Results
         </h1>
       </div>
@@ -248,8 +332,21 @@ const Results = ({ attendanceData, onBack }) => {
                   {stats.presentCount} Students
                 </span>
               </div>
-              <div className="overflow-y-auto max-h-[400px] scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 pr-4 space-y-3">
-                {attendanceData
+              <div
+                className="overflow-y-auto max-h-[400px] scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 pr-4 space-y-3 drop-target"
+                onDragOver={(e) => {
+                  handleDragOver(e);
+                  e.currentTarget.classList.add('drag-over');
+                }}
+                onDragLeave={(e) => {
+                  e.currentTarget.classList.remove('drag-over');
+                }}
+                onDrop={(e) => {
+                  e.currentTarget.classList.remove('drag-over');
+                  handleDrop(e, 'present');
+                }}
+              >
+                {students
                   .filter(student => student.status === 'present')
                   .map((student, index) => (
                     <motion.div
@@ -257,7 +354,12 @@ const Results = ({ attendanceData, onBack }) => {
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.1 }}
-                      className="p-4 rounded-xl bg-green-50 border border-green-100 hover:shadow-md transition-shadow flex items-center justify-between group"
+                      className={`p-4 rounded-xl bg-green-50 border border-green-100 hover:shadow-md transition-all flex items-center justify-between group ${
+                        isEditMode ? 'cursor-move hover:scale-105' : ''
+                      } draggable-item`}
+                      draggable={isEditMode}
+                      onDragStart={(e) => handleDragStart(e, student)}
+                      onDragEnd={handleDragEnd}
                     >
                       <div className="flex items-center gap-4">
                         <div className="w-10 h-10 rounded-full bg-green-200 flex items-center justify-center text-green-700 font-medium">
@@ -273,6 +375,11 @@ const Results = ({ attendanceData, onBack }) => {
                       <div className="flex items-center gap-2">
                         <span className="w-3 h-3 rounded-full bg-green-500"></span>
                         <span className="text-green-700 font-medium">Present</span>
+                        {isEditMode && (
+                          <svg className="w-5 h-5 ml-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l4-4 4 4m0 6l-4 4-4-4" />
+                          </svg>
+                        )}
                       </div>
                     </motion.div>
                   ))}
@@ -280,8 +387,8 @@ const Results = ({ attendanceData, onBack }) => {
               <div className="mt-6">
                 <button
                   onClick={() => exportStudentList(
-                    attendanceData.filter(student => student.status === 'present'),
-                    'Present'
+                    students.filter(student => student.status === 'absent'),
+                    'Absent'
                   )}
                   className="w-full px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl shadow-lg hover:from-green-600 hover:to-green-700 transition-all duration-200 flex items-center justify-center gap-2"
                 >
@@ -306,8 +413,21 @@ const Results = ({ attendanceData, onBack }) => {
                   {stats.absentCount} Students
                 </span>
               </div>
-              <div className="overflow-y-auto max-h-[400px] scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 pr-4 space-y-3">
-                {attendanceData
+              <div
+                className="overflow-y-auto max-h-[400px] scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 pr-4 space-y-3 drop-target"
+                onDragOver={(e) => {
+                  handleDragOver(e);
+                  e.currentTarget.classList.add('drag-over');
+                }}
+                onDragLeave={(e) => {
+                  e.currentTarget.classList.remove('drag-over');
+                }}
+                onDrop={(e) => {
+                  e.currentTarget.classList.remove('drag-over');
+                  handleDrop(e, 'absent');
+                }}
+              >
+                {students
                   .filter(student => student.status === 'absent')
                   .map((student, index) => (
                     <motion.div
@@ -315,7 +435,12 @@ const Results = ({ attendanceData, onBack }) => {
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.1 }}
-                      className="p-4 rounded-xl bg-red-50 border border-red-100 hover:shadow-md transition-shadow flex items-center justify-between group"
+                      className={`p-4 rounded-xl bg-red-50 border border-red-100 hover:shadow-md transition-all flex items-center justify-between group ${
+                        isEditMode ? 'cursor-move hover:scale-105' : ''
+                      } draggable-item`}
+                      draggable={isEditMode}
+                      onDragStart={(e) => handleDragStart(e, student)}
+                      onDragEnd={handleDragEnd}
                     >
                       <div className="flex items-center gap-4">
                         <div className="w-10 h-10 rounded-full bg-red-200 flex items-center justify-center text-red-700 font-medium">
@@ -331,6 +456,11 @@ const Results = ({ attendanceData, onBack }) => {
                       <div className="flex items-center gap-2">
                         <span className="w-3 h-3 rounded-full bg-red-500"></span>
                         <span className="text-red-700 font-medium">Absent</span>
+                        {isEditMode && (
+                          <svg className="w-5 h-5 ml-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l4-4 4 4m0 6l-4 4-4-4" />
+                          </svg>
+                        )}
                       </div>
                     </motion.div>
                   ))}
@@ -360,7 +490,7 @@ const Results = ({ attendanceData, onBack }) => {
             className="mt-8 text-center"
           >
             <button
-              onClick={() => exportStudentList(attendanceData, 'Complete')}
+              onClick={() => exportStudentList(students, 'Complete')}
               className="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl shadow-xl hover:from-blue-600 hover:to-purple-700 transition-all duration-200 text-xl font-bold group"
             >
               <svg className="w-6 h-6 transform group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
