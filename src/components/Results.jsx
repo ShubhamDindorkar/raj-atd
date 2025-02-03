@@ -134,39 +134,78 @@ const Results = ({ attendanceData, onBack }) => {
     };
   };
 
+  const [draggedStudent, setDraggedStudent] = useState(null);
+  const [touchStartY, setTouchStartY] = useState(null);
+
   const handleDragStart = (e, student) => {
-    // Set the dragged student data
+    if (e.type === 'touchstart') {
+      setTouchStartY(e.touches[0].clientY);
+      e.target.classList.add('dragging');
+      setDraggedStudent(student);
+      return;
+    }
+    // Desktop drag handling
     e.dataTransfer.setData('application/json', JSON.stringify(student));
-    // Add a visual effect to the dragged element
     e.target.classList.add('dragging');
   };
 
   const handleDragOver = (e) => {
     e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
+    if (e.dataTransfer) {
+      e.dataTransfer.dropEffect = 'move';
+    }
+  };
+
+  const handleTouchMove = (e) => {
+    if (!touchStartY) return;
+
+    const touch = e.touches[0];
+    const deltaY = touchStartY - touch.clientY;
+
+    // Prevent scrolling while dragging
+    e.preventDefault();
+
+    // Add visual feedback during touch move
+    const element = e.target;
+    element.style.transform = `translateY(${-deltaY}px)`;
   };
 
   const handleDrop = (e, newStatus) => {
     e.preventDefault();
-    try {
-      const draggedStudent = JSON.parse(e.dataTransfer.getData('application/json'));
-      if (draggedStudent && draggedStudent.status !== newStatus) {
-        setStudents(prevStudents => {
-          return prevStudents.map(student => {
-            if (student.id === draggedStudent.id && student.rollNo === draggedStudent.rollNo) {
-              return { ...student, status: newStatus };
-            }
-            return student;
-          });
-        });
+    let studentToMove = null;
+
+    if (e.type === 'touchend') {
+      studentToMove = draggedStudent;
+      setDraggedStudent(null);
+      setTouchStartY(null);
+      e.target.style.transform = '';
+    } else {
+      try {
+        studentToMove = JSON.parse(e.dataTransfer.getData('application/json'));
+      } catch (error) {
+        console.error('Error during drop:', error);
+        return;
       }
-    } catch (error) {
-      console.error('Error during drop:', error);
+    }
+
+    if (studentToMove && studentToMove.status !== newStatus) {
+      setStudents(prevStudents => {
+        return prevStudents.map(student => {
+          if (student.id === studentToMove.id && student.rollNo === studentToMove.rollNo) {
+            return { ...student, status: newStatus };
+          }
+          return student;
+        });
+      });
     }
   };
 
   const handleDragEnd = (e) => {
-    // Remove visual effect
+    if (e.type === 'touchend') {
+      setDraggedStudent(null);
+      setTouchStartY(null);
+      e.target.style.transform = '';
+    }
     e.target.classList.remove('dragging');
   };
 
@@ -345,6 +384,10 @@ const Results = ({ attendanceData, onBack }) => {
                   e.currentTarget.classList.remove('drag-over');
                   handleDrop(e, 'present');
                 }}
+                onTouchEnd={(e) => {
+                  e.currentTarget.classList.remove('drag-over');
+                  handleDrop(e, 'present');
+                }}
               >
                 {students
                   .filter(student => student.status === 'present')
@@ -354,12 +397,15 @@ const Results = ({ attendanceData, onBack }) => {
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.1 }}
-                      className={`p-4 rounded-xl bg-green-50 border border-green-100 hover:shadow-md transition-all flex items-center justify-between group ${
+                      className={`p-4 rounded-xl bg-red-50 border border-red-100 hover:shadow-md transition-all flex items-center justify-between group ${
                         isEditMode ? 'cursor-move hover:scale-105' : ''
                       } draggable-item`}
                       draggable={isEditMode}
                       onDragStart={(e) => handleDragStart(e, student)}
                       onDragEnd={handleDragEnd}
+                      onTouchStart={(e) => handleDragStart(e, student)}
+                      onTouchMove={handleTouchMove}
+                      onTouchEnd={handleDragEnd}
                     >
                       <div className="flex items-center gap-4">
                         <div className="w-10 h-10 rounded-full bg-green-200 flex items-center justify-center text-green-700 font-medium">
@@ -387,8 +433,8 @@ const Results = ({ attendanceData, onBack }) => {
               <div className="mt-6">
                 <button
                   onClick={() => exportStudentList(
-                    students.filter(student => student.status === 'absent'),
-                    'Absent'
+                    students.filter(student => student.status === 'present'),
+                    'Present'
                   )}
                   className="w-full px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl shadow-lg hover:from-green-600 hover:to-green-700 transition-all duration-200 flex items-center justify-center gap-2"
                 >
