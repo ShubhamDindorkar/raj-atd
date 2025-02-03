@@ -97,8 +97,10 @@ const Results = ({ attendanceData, onBack }) => {
   const getStats = () => {
     const presentCount = attendanceData.filter(student => student.status === 'present').length;
     const totalCount = attendanceData.length;
+    const absentCount = totalCount - presentCount;
     return {
       presentCount,
+      absentCount,
       totalCount,
       presentPercentage: Math.round((presentCount / totalCount) * 100)
     };
@@ -107,27 +109,73 @@ const Results = ({ attendanceData, onBack }) => {
   const stats = getStats();
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 p-12">
-      {/* Header */}
-      <div className="text-center mb-16">
-        <h1 className="text-6xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 text-transparent bg-clip-text">
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 p-8 md:p-12">
+      {/* Header with Back Button */}
+      <div className="max-w-7xl mx-auto relative mb-12">
+        <button
+          onClick={onBack}
+          className="absolute left-0 top-1/2 -translate-y-1/2 flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
+          aria-label="Go back"
+        >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+          <span>Back</span>
+        </button>
+        <h1 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 text-transparent bg-clip-text text-center">
           Attendance Results
         </h1>
       </div>
 
+      {/* Stats Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-7xl mx-auto mb-12">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white rounded-xl shadow-lg p-6 border-t-4 border-blue-500"
+        >
+          <h3 className="text-lg font-medium text-gray-500">Total Students</h3>
+          <p className="text-4xl font-bold text-gray-900 mt-2">{stats.totalCount}</p>
+        </motion.div>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="bg-white rounded-xl shadow-lg p-6 border-t-4 border-green-500"
+        >
+          <h3 className="text-lg font-medium text-gray-500">Present</h3>
+          <p className="text-4xl font-bold text-gray-900 mt-2">{stats.presentCount}</p>
+        </motion.div>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="bg-white rounded-xl shadow-lg p-6 border-t-4 border-red-500"
+        >
+          <h3 className="text-lg font-medium text-gray-500">Absent</h3>
+          <p className="text-4xl font-bold text-gray-900 mt-2">{stats.absentCount}</p>
+        </motion.div>
+      </div>
+
+
 
 
       {/* Progress Circle */}
-      <div className="flex justify-center mb-24">
-        <div className="relative w-96 h-96">
+      <div className="flex justify-center mb-16">
+        <motion.div
+          initial={{ scale: 0.5, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
+          className="relative w-64 h-64 md:w-80 md:h-80 bg-white rounded-full shadow-xl p-4"
+        >
           <svg className="w-full h-full" viewBox="0 0 100 100">
             <circle
               cx="50"
               cy="50"
               r="45"
               fill="none"
-              stroke="#e2e8f0"
-              strokeWidth="10"
+              stroke="#f3f4f6"
+              strokeWidth="8"
             />
             <motion.circle
               cx="50"
@@ -135,126 +183,194 @@ const Results = ({ attendanceData, onBack }) => {
               r="45"
               fill="none"
               stroke="url(#gradient)"
-              strokeWidth="10"
+              strokeWidth="8"
               strokeLinecap="round"
               initial={{ pathLength: 0 }}
               animate={{ pathLength: stats.presentPercentage / 100 }}
-              transition={{ duration: 1.5, ease: "easeOut" }}
+              transition={{ duration: 2, ease: "easeOut" }}
               transform="rotate(-90 50 50)"
               strokeDasharray="283"
               strokeDashoffset="0"
             />
             <defs>
               <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="#3B82F6" />
-                <stop offset="100%" stopColor="#8B5CF6" />
+                <stop offset="0%" stopColor="#3B82F6">
+                  <animate attributeName="stopColor" values="#3B82F6; #8B5CF6; #3B82F6" dur="4s" repeatCount="indefinite" />
+                </stop>
+                <stop offset="100%" stopColor="#8B5CF6">
+                  <animate attributeName="stopColor" values="#8B5CF6; #3B82F6; #8B5CF6" dur="4s" repeatCount="indefinite" />
+                </stop>
               </linearGradient>
             </defs>
           </svg>
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="text-center">
-              <span className="text-6xl font-bold text-gray-800">{stats.presentPercentage}%</span>
-              <p className="text-2xl text-gray-600 mt-4">Present</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Student Lists */}
-      <AnimatePresence mode="wait">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -20 }}
-          className="grid grid-cols-2 gap-8 max-w-[1800px] mx-auto"
-        >
-          {/* Present Students */}
-          <div>
-            <h2 className="text-3xl font-bold text-green-600 mb-4 text-center">Present Students</h2>
-            <div className="overflow-y-auto max-h-[600px] pr-4 space-y-2">
-              {attendanceData
-                .filter(student => student.status === 'present')
-                .map((student) => (
-                  <motion.div
-                    key={student.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="p-4 rounded-xl shadow-lg flex items-center justify-between bg-green-50 border-l-4 border-green-500"
-                  >
-                    <div className="flex items-center gap-4">
-                      <span className="text-2xl font-bold text-gray-700">
-                        {student.name}
-                      </span>
-                      <span className="text-xl text-gray-600">
-                        {student.rollNo.replace(/[^\d]/g, '')}
-                      </span>
-                    </div>
-                    <div className="text-2xl text-green-500">P</div>
-                  </motion.div>
-                ))}
-            </div>
-            <div className="mt-4 text-center">
-              <button
-                onClick={() => exportStudentList(
-                  attendanceData.filter(student => student.status === 'present'),
-                  'Present'
-                )}
-                className="px-6 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg shadow-lg hover:from-green-600 hover:to-green-700 transition-all duration-200"
+              <motion.span
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.5 }}
+                className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 text-transparent bg-clip-text"
               >
-                Export Present List
-              </button>
-            </div>
-          </div>
-
-          {/* Absent Students */}
-          <div>
-            <h2 className="text-3xl font-bold text-red-600 mb-4 text-center">Absent Students</h2>
-            <div className="overflow-y-auto max-h-[600px] pr-4 space-y-2">
-              {attendanceData
-                .filter(student => student.status === 'absent')
-                .map((student) => (
-                  <motion.div
-                    key={student.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="p-4 rounded-xl shadow-lg flex items-center justify-between bg-red-50 border-l-4 border-red-500"
-                  >
-                    <div className="flex items-center gap-4">
-                      <span className="text-2xl font-bold text-gray-700">
-                        {student.name}
-                      </span>
-                      <span className="text-xl text-gray-600">
-                        {student.rollNo.replace(/[^\d]/g, '')}
-                      </span>
-                    </div>
-                    <div className="text-2xl text-red-500">A</div>
-                  </motion.div>
-                ))}
-            </div>
-            <div className="mt-4 text-center">
-              <button
-                onClick={() => exportStudentList(
-                  attendanceData.filter(student => student.status === 'absent'),
-                  'Absent'
-                )}
-                className="px-6 py-2 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg shadow-lg hover:from-red-600 hover:to-red-700 transition-all duration-200"
+                {stats.presentPercentage}%
+              </motion.span>
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.7 }}
+                className="text-xl md:text-2xl text-gray-600 mt-2"
               >
-                Export Absent List
-              </button>
+                Attendance Rate
+              </motion.p>
             </div>
           </div>
         </motion.div>
+      </div>
 
-        {/* Generate Complete Attendance List Button */}
-        <div className="col-span-2 mt-8 text-center">
-          <button
-            onClick={() => exportStudentList(attendanceData, 'Complete')}
-            className="px-8 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg shadow-lg hover:from-blue-600 hover:to-purple-700 transition-all duration-200 text-xl font-bold"
+      {/* Student Lists */}
+      <div className="max-w-7xl mx-auto">
+        <AnimatePresence mode="wait">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="grid grid-cols-1 md:grid-cols-2 gap-8"
           >
-            Generate Complete Attendance List
-          </button>
-        </div>
-      </AnimatePresence>
+            {/* Present Students */}
+            <motion.div
+              initial={{ x: -20, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              transition={{ delay: 0.2 }}
+              className="bg-white rounded-2xl shadow-lg p-6"
+            >
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold text-green-600">Present Students</h2>
+                <span className="px-4 py-2 bg-green-100 text-green-800 rounded-full text-sm font-medium">
+                  {stats.presentCount} Students
+                </span>
+              </div>
+              <div className="overflow-y-auto max-h-[400px] scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 pr-4 space-y-3">
+                {attendanceData
+                  .filter(student => student.status === 'present')
+                  .map((student, index) => (
+                    <motion.div
+                      key={student.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.1 }}
+                      className="p-4 rounded-xl bg-green-50 border border-green-100 hover:shadow-md transition-shadow flex items-center justify-between group"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-full bg-green-200 flex items-center justify-center text-green-700 font-medium">
+                          {student.name.charAt(0)}
+                        </div>
+                        <div>
+                          <h3 className="text-lg font-semibold text-gray-800 group-hover:text-green-700 transition-colors">
+                            {student.name}
+                          </h3>
+                          <p className="text-sm text-gray-500">Roll No: {student.rollNo.replace(/[^\d]/g, '')}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="w-3 h-3 rounded-full bg-green-500"></span>
+                        <span className="text-green-700 font-medium">Present</span>
+                      </div>
+                    </motion.div>
+                  ))}
+              </div>
+              <div className="mt-6">
+                <button
+                  onClick={() => exportStudentList(
+                    attendanceData.filter(student => student.status === 'present'),
+                    'Present'
+                  )}
+                  className="w-full px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl shadow-lg hover:from-green-600 hover:to-green-700 transition-all duration-200 flex items-center justify-center gap-2"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  Export Present List
+                </button>
+              </div>
+            </motion.div>
+
+            {/* Absent Students */}
+            <motion.div
+              initial={{ x: 20, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              transition={{ delay: 0.3 }}
+              className="bg-white rounded-2xl shadow-lg p-6"
+            >
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold text-red-600">Absent Students</h2>
+                <span className="px-4 py-2 bg-red-100 text-red-800 rounded-full text-sm font-medium">
+                  {stats.absentCount} Students
+                </span>
+              </div>
+              <div className="overflow-y-auto max-h-[400px] scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 pr-4 space-y-3">
+                {attendanceData
+                  .filter(student => student.status === 'absent')
+                  .map((student, index) => (
+                    <motion.div
+                      key={student.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.1 }}
+                      className="p-4 rounded-xl bg-red-50 border border-red-100 hover:shadow-md transition-shadow flex items-center justify-between group"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-full bg-red-200 flex items-center justify-center text-red-700 font-medium">
+                          {student.name.charAt(0)}
+                        </div>
+                        <div>
+                          <h3 className="text-lg font-semibold text-gray-800 group-hover:text-red-700 transition-colors">
+                            {student.name}
+                          </h3>
+                          <p className="text-sm text-gray-500">Roll No: {student.rollNo.replace(/[^\d]/g, '')}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="w-3 h-3 rounded-full bg-red-500"></span>
+                        <span className="text-red-700 font-medium">Absent</span>
+                      </div>
+                    </motion.div>
+                  ))}
+              </div>
+              <div className="mt-6">
+                <button
+                  onClick={() => exportStudentList(
+                    attendanceData.filter(student => student.status === 'absent'),
+                    'Absent'
+                  )}
+                  className="w-full px-6 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl shadow-lg hover:from-red-600 hover:to-red-700 transition-all duration-200 flex items-center justify-center gap-2"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  Export Absent List
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+
+          {/* Generate Complete Attendance List Button */}
+          <motion.div
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.4 }}
+            className="mt-8 text-center"
+          >
+            <button
+              onClick={() => exportStudentList(attendanceData, 'Complete')}
+              className="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl shadow-xl hover:from-blue-600 hover:to-purple-700 transition-all duration-200 text-xl font-bold group"
+            >
+              <svg className="w-6 h-6 transform group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Generate Complete Attendance List
+            </button>
+          </motion.div>
+        </AnimatePresence>
+      </div>
     </div>
   );
 };
