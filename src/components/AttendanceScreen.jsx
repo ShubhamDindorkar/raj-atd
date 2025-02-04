@@ -1,43 +1,96 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLocation } from 'react-router-dom';
 import Results from './Results';
 import studentData from '../studentData.json';
 
-const StudentCard = ({ student, onSwipe, style }) => {
+const StudentCard = React.memo(({ student, onSwipe, style }) => {
   const [dragDirection, setDragDirection] = useState(null);
+  const [isAnimating, setIsAnimating] = useState(false);
+
+  const handleButtonClick = useCallback((status) => {
+    if (isAnimating) return;
+
+    setIsAnimating(true);
+    setDragDirection(status === 'present' ? 'right' : 'left');
+
+    // Use requestAnimationFrame for smoother animation
+    requestAnimationFrame(() => {
+      const animationTimeout = setTimeout(() => {
+        onSwipe(status);
+        setDragDirection(null);
+        setIsAnimating(false);
+      }, 500);
+      return () => clearTimeout(animationTimeout);
+    });
+  }, [isAnimating, onSwipe]);
+
+  // Add keyboard event listener with useCallback
+  const handleKeyPress = useCallback((e) => {
+    if (isAnimating) return;
+
+    if (e.key === 'ArrowRight') {
+      handleButtonClick('present');
+    } else if (e.key === 'ArrowLeft') {
+      handleButtonClick('absent');
+    }
+  }, [isAnimating, handleButtonClick]);
+
+  useEffect(() => {
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [handleKeyPress]);
 
   return (
     <motion.div
-      drag="x"
+      drag={!isAnimating ? "x" : false}
       dragConstraints={{ left: 0, right: 0 }}
-      dragElastic={0.7}
+      dragElastic={0.9}
+      dragTransition={{ bounceStiffness: 300, bounceDamping: 20 }}
       onDragEnd={(e, { offset }) => {
         const swipe = offset.x;
-        if (Math.abs(swipe) > 100) {
-          onSwipe(swipe > 0 ? 'present' : 'absent');
+        if (Math.abs(swipe) > 100 && !isAnimating) {
+          const status = swipe > 0 ? 'present' : 'absent';
+          handleButtonClick(status);
+        } else {
+          setDragDirection(null);
         }
       }}
       style={{
         ...style,
-        willChange: 'transform'  // Optimize for animations
+        willChange: 'transform',
+        transform: `
+          ${isAnimating && dragDirection === 'right' ? 'translateX(120%)' :
+          isAnimating && dragDirection === 'left' ? 'translateX(-120%)' : 'none'}
+          scale(${isAnimating ? 0.98 : 1})
+        `,
+        transition: 'transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)'
       }}
       onDrag={(e, { offset }) => {
-        const direction = offset.x > 0 ? 'right' : offset.x < 0 ? 'left' : null;
-        if (direction !== dragDirection) {
-          setDragDirection(direction);
+        if (!isAnimating) {
+          requestAnimationFrame(() => {
+            const direction = offset.x > 0 ? 'right' : offset.x < 0 ? 'left' : null;
+            if (direction !== dragDirection) {
+              setDragDirection(direction);
+            }
+          });
         }
       }}
       className="absolute w-full h-[90vh]"
     >
       <div
         className={`w-full h-full bg-gray-50 shadow-xl transform flex
-          ${dragDirection === 'right' ? 'bg-green-50 border-l-4 border-green-500' :
-          dragDirection === 'left' ? 'bg-red-50 border-r-4 border-red-500' : ''}`}
+          ${dragDirection === 'right' ? 'bg-green-50 border-l-8 border-green-500' :
+          dragDirection === 'left' ? 'bg-red-50 border-r-8 border-red-500' : ''}`}
         style={{
-          transition: 'background-color 0.2s, border 0.2s',
-          willChange: 'background-color, border',
-          backgroundColor: 'white' // Make the card background fully opaque
+          transition: 'all 0.3s ease',
+          willChange: 'background-color, border, box-shadow',
+          backgroundColor: 'white',
+          boxShadow: dragDirection === 'right'
+            ? '0 0 30px 5px rgba(34, 197, 94, 0.4), inset 0 0 20px rgba(34, 197, 94, 0.2)'
+            : dragDirection === 'left'
+            ? '0 0 30px 5px rgba(239, 68, 68, 0.4), inset 0 0 20px rgba(239, 68, 68, 0.2)'
+            : '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
         }}
       >
         {/* Center - Student Info */}
@@ -65,97 +118,114 @@ const StudentCard = ({ student, onSwipe, style }) => {
         {/* Swipe Instructions */}
         <div className="absolute bottom-12 left-0 right-0 flex justify-between px-24">
           <button
-            onClick={() => onSwipe('absent')}
+            onClick={() => handleButtonClick('absent')}
             className={`text-3xl font-bold text-red-500 transition-opacity duration-200 hover:text-red-600
               ${dragDirection === 'left' ? 'opacity-100' : 'opacity-30'}`}
+            disabled={isAnimating}
           >
             ← ABSENT
           </button>
           <button
-            onClick={() => onSwipe('present')}
+            onClick={() => handleButtonClick('present')}
             className={`text-3xl font-bold text-green-500 transition-opacity duration-200 hover:text-green-600
               ${dragDirection === 'right' ? 'opacity-100' : 'opacity-30'}`}
+            disabled={isAnimating}
           >
             PRESENT →
           </button>
         </div>
+
+
       </div>
     </motion.div>
   );
-};
+});
 
 const AttendanceScreen = () => {
   const location = useLocation();
   const [students, setStudents] = useState([]);
 
-  useEffect(() => {
-    // Get the selected class and roll range from the location state
-    const selectedClass = location.state?.selectedClass || 'classA';
-    const rollRange = location.state?.rollRange;
-
-    // Get students from the selected class within the roll range and add status field
+  // Memoize the filtered students calculation
+  const getFilteredStudents = useCallback((selectedClass, rollRange, batch) => {
     let classStudents = studentData[selectedClass];
 
-    // Filter students based on range if provided
-    if (rollRange && rollRange.start && rollRange.end) {
-      if (location.state?.batch === 'custom') {
-        // For custom range - filter by actual roll numbers
-        classStudents = classStudents.filter(student => {
+    if (rollRange?.start && rollRange?.end) {
+      if (batch === 'custom') {
+        return classStudents.filter(student => {
           const rollNo = parseInt(student.rollNo.replace(/[^\d]/g, ''));
           return rollNo >= rollRange.start && rollNo <= rollRange.end;
         });
-      } else {
-        // For full class - filter by serial numbers (original logic)
-        classStudents = classStudents.filter(student => {
-          const serialNo = parseInt(student.serialNo);
-          return serialNo >= rollRange.start && serialNo <= rollRange.end;
-        });
       }
+      return classStudents.filter(student => {
+        const serialNo = parseInt(student.serialNo);
+        return serialNo >= rollRange.start && serialNo <= rollRange.end;
+      });
     }
+    return classStudents;
+  }, []);
 
-    // Map students with status
-    classStudents = classStudents.map(student => ({
+  useEffect(() => {
+    const selectedClass = location.state?.selectedClass || 'classA';
+    const rollRange = location.state?.rollRange;
+    const batch = location.state?.batch;
+
+    const filteredStudents = getFilteredStudents(selectedClass, rollRange, batch);
+
+    // Use a single map operation for better performance
+    setStudents(filteredStudents.map(student => ({
       ...student,
       status: null
-    }));
-
-    setStudents(classStudents);
-  }, [location.state?.selectedClass, location.state?.rollRange]);
+    })));
+  }, [location.state?.selectedClass, location.state?.rollRange, location.state?.batch, getFilteredStudents]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isCompleted, setIsCompleted] = useState(false);
   const [history, setHistory] = useState([]);
 
-  const handleSwipe = (status) => {
+  const handleSwipe = useCallback((status) => {
     setStudents((prevStudents) => {
+      // Only store the changed student and index in history for better memory usage
+      setHistory(prev => [...prev, {
+        studentIndex: currentIndex,
+        previousStatus: prevStudents[currentIndex].status
+      }]);
+
       const newStudents = [...prevStudents];
       newStudents[currentIndex] = { ...newStudents[currentIndex], status };
-      // Save to history
-      setHistory(prev => [...prev, {
-        students: [...prevStudents],
-        currentIndex
-      }]);
       return newStudents;
     });
 
-    if (currentIndex < students.length - 1) {
-      setCurrentIndex(currentIndex + 1);
-    } else {
-      setIsCompleted(true);
-    }
-  };
+    setCurrentIndex(prevIndex => {
+      if (prevIndex < students.length - 1) {
+        return prevIndex + 1;
+      } else {
+        setIsCompleted(true);
+        return prevIndex;
+      }
+    });
+  }, [currentIndex, students.length]);
 
-  const handleUndo = () => {
+  const handleUndo = useCallback(() => {
     if (history.length > 0) {
       const lastState = history[history.length - 1];
-      setStudents(lastState.students);
-      setCurrentIndex(lastState.currentIndex);
+
+      setStudents(prevStudents => {
+        const newStudents = [...prevStudents];
+        newStudents[lastState.studentIndex] = {
+          ...newStudents[lastState.studentIndex],
+          status: lastState.previousStatus
+        };
+        return newStudents;
+      });
+
+      setCurrentIndex(lastState.studentIndex);
       setHistory(prev => prev.slice(0, -1));
     }
-  };
+  }, [history]);
 
-  const getProgress = () => {
+  // Memoize progress calculation
+  const progress = useMemo(() => {
     return ((currentIndex) / students.length) * 100;
-  };
+  }, [currentIndex, students.length]);
 
   if (isCompleted) {
     return <Results
@@ -175,12 +245,12 @@ const AttendanceScreen = () => {
         <motion.div
           className="h-full bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 relative"
           initial={{ width: 0 }}
-          animate={{ width: `${getProgress()}%` }}
-          transition={{ duration: 0.5 }}
+          animate={{ width: `${progress}%` }}
+          transition={{ duration: 0.3, ease: "easeOut" }}
         >
           <div className="absolute inset-0 flex items-center justify-end pr-8">
             <span className="text-4xl font-bold text-white">
-              {Math.round(getProgress())}%
+              {Math.round(progress)}%
             </span>
           </div>
         </motion.div>
