@@ -73,7 +73,7 @@ const exportStudentList = (students, type) => {
           0: { cellWidth: 15 },
           1: { cellWidth: 25 },
           2: { cellWidth: 'auto' },
-          3: { cellWidth: 15 }
+          3: { cellWidth: 20 }
         }
       : {
           0: { cellWidth: 15 },
