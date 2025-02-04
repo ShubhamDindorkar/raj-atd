@@ -1,125 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import universityLogo from '../assets/img/DESPU_logo1.jpg';
-
-// Mobile Student Card Component
-const MobileStudentCard = ({ student, isEditMode, onStatusChange }) => {
-  const [showModal, setShowModal] = useState(false);
-  const [touchStart, setTouchStart] = useState(null);
-  const [touchEnd, setTouchEnd] = useState(null);
-
-  const handleTouchStart = (e) => {
-    if (!isEditMode) return;
-    setTouchStart(e.targetTouches[0].clientX);
-  };
-
-  const handleTouchMove = (e) => {
-    if (!isEditMode) return;
-    setTouchEnd(e.targetTouches[0].clientX);
-  };
-
-  const handleTouchEnd = () => {
-    if (!isEditMode) {
-      setTouchStart(null);
-      setTouchEnd(null);
-      return;
-    }
-
-    if (touchStart && touchEnd) {
-      const swipeDistance = touchStart - touchEnd;
-      const minSwipeDistance = 50;
-
-      if (Math.abs(swipeDistance) > minSwipeDistance) {
-        setShowModal(true);
-      }
-    }
-
-    // Always clean up touch states
-    setTouchStart(null);
-    setTouchEnd(null);
-  };
-
-  const handleStatusChange = (newStatus) => {
-    onStatusChange(student, newStatus);
-    setShowModal(false);
-  };
-
-  const isPresent = student.status === 'present';
-  const bgColor = isPresent ? 'bg-green-50' : 'bg-red-50';
-  const borderColor = isPresent ? 'border-green-100' : 'border-red-100';
-  const avatarBg = isPresent ? 'bg-green-200' : 'bg-red-200';
-  const avatarText = isPresent ? 'text-green-700' : 'text-red-700';
-  const statusDotBg = isPresent ? 'bg-green-500' : 'bg-red-500';
-  const statusText = isPresent ? 'text-green-700' : 'text-red-700';
-
-  return (
-    <>
-      <motion.div
-        className={`p-4 rounded-xl ${bgColor} border ${borderColor} hover:shadow-md transition-all flex items-center justify-between group relative`}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-        onTouchCancel={() => {
-          setTouchStart(null);
-          setTouchEnd(null);
-        }}
-      >
-        <div className="flex items-center gap-4">
-          <div className={`w-10 h-10 rounded-full ${avatarBg} flex items-center justify-center ${avatarText} font-medium`}>
-            {student.name.charAt(0)}
-          </div>
-          <div>
-            <h3 className="text-lg font-semibold text-gray-800 transition-colors">
-              {student.name}
-            </h3>
-            <p className="text-sm text-gray-500">Roll No: {student.rollNo.replace(/[^\d]/g, '')}</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className={`w-3 h-3 rounded-full ${statusDotBg}`}></span>
-          <span className={`${statusText} font-medium`}>{isPresent ? 'Present' : 'Absent'}</span>
-          {isEditMode && (
-            <svg className="w-5 h-5 ml-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l4-4 4 4m0 6l-4 4-4-4" />
-            </svg>
-          )}
-        </div>
-      </motion.div>
-
-      {/* Status Change Modal */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl p-6 w-full max-w-sm">
-            <h3 className="text-xl font-bold mb-4">Change Status</h3>
-            <p className="mb-6">Change status for {student.name}</p>
-            <div className="space-y-3">
-              <button
-                onClick={() => handleStatusChange('present')}
-                className="w-full py-3 px-4 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
-              >
-                Mark as Present
-              </button>
-              <button
-                onClick={() => handleStatusChange('absent')}
-                className="w-full py-3 px-4 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
-              >
-                Mark as Absent
-              </button>
-              <button
-                onClick={() => setShowModal(false)}
-                className="w-full py-3 px-4 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </>
-  );
-};
 
 const exportStudentList = (students, type) => {
   const now = new Date();
@@ -238,27 +121,6 @@ const Results = ({ attendanceData, onBack }) => {
   }, []);
   const [isEditMode, setIsEditMode] = useState(false);
   const [students, setStudents] = useState(attendanceData);
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-
-  useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  const handleStatusChange = (student, newStatus) => {
-    setStudents(prevStudents => {
-      return prevStudents.map(s => {
-        if (s.id === student.id && s.rollNo === student.rollNo) {
-          return { ...s, status: newStatus };
-        }
-        return s;
-      });
-    });
-  };
 
   const getStats = () => {
     const presentCount = students.filter(student => student.status === 'present').length;
@@ -487,58 +349,39 @@ const Results = ({ attendanceData, onBack }) => {
                 {students
                   .filter(student => student.status === 'present')
                   .map((student, index) => (
-                    isMobile ? (
-                      <MobileStudentCard
-                        key={student.id}
-                        student={student}
-                        isEditMode={isEditMode}
-                        onStatusChange={handleStatusChange}
-                      />
-                    ) : (
-                      <motion.div
-                        key={student.id}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.1 }}
-                        className={`p-4 rounded-xl bg-green-50 border border-green-100 hover:shadow-md transition-all flex items-center justify-between group ${
-                          isEditMode ? 'cursor-move hover:scale-105' : ''
-                        } draggable-item`}
-                        draggable={isEditMode}
-                        onDragStart={(e) => {
-                          e.dataTransfer.effectAllowed = 'move';
-                          handleDragStart(e, student);
-                        }}
-                        onDragEnd={handleDragEnd}
-                        onTouchStart={(e) => {
-                          // Prevent default only if in edit mode to allow normal touch scrolling
-                          if (isEditMode) {
-                            e.preventDefault();
-                          }
-                        }}
-                        touch-action={isEditMode ? 'none' : 'auto'}
-                      >
-                        <div className="flex items-center gap-4">
-                          <div className="w-10 h-10 rounded-full bg-green-200 flex items-center justify-center text-green-700 font-medium">
-                            {student.name.charAt(0)}
-                          </div>
-                          <div>
-                            <h3 className="text-lg font-semibold text-gray-800 group-hover:text-green-700 transition-colors">
-                              {student.name}
-                            </h3>
-                            <p className="text-sm text-gray-500">Roll No: {student.rollNo.replace(/[^\d]/g, '')}</p>
-                          </div>
+                    <motion.div
+                      key={student.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.1 }}
+                      className={`p-4 rounded-xl bg-green-50 border border-green-100 hover:shadow-md transition-all flex items-center justify-between group ${
+                        isEditMode ? 'cursor-move hover:scale-105' : ''
+                      } draggable-item`}
+                      draggable={isEditMode}
+                      onDragStart={(e) => handleDragStart(e, student)}
+                      onDragEnd={handleDragEnd}
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-full bg-green-200 flex items-center justify-center text-green-700 font-medium">
+                          {student.name.charAt(0)}
                         </div>
-                        <div className="flex items-center gap-2">
-                          <span className="w-3 h-3 rounded-full bg-green-500"></span>
-                          <span className="text-green-700 font-medium">Present</span>
-                          {isEditMode && (
-                            <svg className="w-5 h-5 ml-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l4-4 4 4m0 6l-4 4-4-4" />
-                            </svg>
-                          )}
+                        <div>
+                          <h3 className="text-lg font-semibold text-gray-800 group-hover:text-green-700 transition-colors">
+                            {student.name}
+                          </h3>
+                          <p className="text-sm text-gray-500">Roll No: {student.rollNo.replace(/[^\d]/g, '')}</p>
                         </div>
-                      </motion.div>
-                    )
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="w-3 h-3 rounded-full bg-green-500"></span>
+                        <span className="text-green-700 font-medium">Present</span>
+                        {isEditMode && (
+                          <svg className="w-5 h-5 ml-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l4-4 4 4m0 6l-4 4-4-4" />
+                          </svg>
+                        )}
+                      </div>
+                    </motion.div>
                   ))}
               </div>
               <div className="mt-6">
@@ -587,48 +430,39 @@ const Results = ({ attendanceData, onBack }) => {
                 {students
                   .filter(student => student.status === 'absent')
                   .map((student, index) => (
-                    isMobile ? (
-                      <MobileStudentCard
-                        key={student.id}
-                        student={student}
-                        isEditMode={isEditMode}
-                        onStatusChange={handleStatusChange}
-                      />
-                    ) : (
-                      <motion.div
-                        key={student.id}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.1 }}
-                        className={`p-4 rounded-xl bg-red-50 border border-red-100 hover:shadow-md transition-all flex items-center justify-between group ${
-                          isEditMode ? 'cursor-move hover:scale-105' : ''
-                        } draggable-item`}
-                        draggable={isEditMode}
-                        onDragStart={(e) => handleDragStart(e, student)}
-                        onDragEnd={handleDragEnd}
-                      >
-                        <div className="flex items-center gap-4">
-                          <div className="w-10 h-10 rounded-full bg-red-200 flex items-center justify-center text-red-700 font-medium">
-                            {student.name.charAt(0)}
-                          </div>
-                          <div>
-                            <h3 className="text-lg font-semibold text-gray-800 group-hover:text-red-700 transition-colors">
-                              {student.name}
-                            </h3>
-                            <p className="text-sm text-gray-500">Roll No: {student.rollNo.replace(/[^\d]/g, '')}</p>
-                          </div>
+                    <motion.div
+                      key={student.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.1 }}
+                      className={`p-4 rounded-xl bg-red-50 border border-red-100 hover:shadow-md transition-all flex items-center justify-between group ${
+                        isEditMode ? 'cursor-move hover:scale-105' : ''
+                      } draggable-item`}
+                      draggable={isEditMode}
+                      onDragStart={(e) => handleDragStart(e, student)}
+                      onDragEnd={handleDragEnd}
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-full bg-red-200 flex items-center justify-center text-red-700 font-medium">
+                          {student.name.charAt(0)}
                         </div>
-                        <div className="flex items-center gap-2">
-                          <span className="w-3 h-3 rounded-full bg-red-500"></span>
-                          <span className="text-red-700 font-medium">Absent</span>
-                          {isEditMode && (
-                            <svg className="w-5 h-5 ml-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l4-4 4 4m0 6l-4 4-4-4" />
-                            </svg>
-                          )}
+                        <div>
+                          <h3 className="text-lg font-semibold text-gray-800 group-hover:text-red-700 transition-colors">
+                            {student.name}
+                          </h3>
+                          <p className="text-sm text-gray-500">Roll No: {student.rollNo.replace(/[^\d]/g, '')}</p>
                         </div>
-                      </motion.div>
-                    )
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="w-3 h-3 rounded-full bg-red-500"></span>
+                        <span className="text-red-700 font-medium">Absent</span>
+                        {isEditMode && (
+                          <svg className="w-5 h-5 ml-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l4-4 4 4m0 6l-4 4-4-4" />
+                          </svg>
+                        )}
+                      </div>
+                    </motion.div>
                   ))}
               </div>
               <div className="mt-6">
