@@ -93,21 +93,21 @@ const exportStudentList = (students, type) => {
   doc.save(`${type.toLowerCase()}_students_${dateStr.replace(/\//g, '-')}.pdf`);
 };
 
-// Add styles for drag and drop
-const dragStyles = `
-  .draggable-item {
+// Add styles for hover effects
+const hoverStyles = `
+  .student-card {
     transition: transform 0.2s, box-shadow 0.2s;
   }
-  .draggable-item.dragging {
-    opacity: 0.5;
-    transform: scale(1.05);
-    box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+  .student-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
   }
-  .drop-target {
-    transition: background-color 0.2s;
+  .student-card.edit-mode {
+    cursor: pointer;
   }
-  .drop-target.drag-over {
-    background-color: rgba(0,0,0,0.05);
+  .student-card.edit-mode:hover {
+    transform: translateY(-2px) scale(1.01);
+    box-shadow: 0 6px 8px rgba(0,0,0,0.15);
   }
 `;
 
@@ -115,7 +115,7 @@ const Results = ({ attendanceData, onBack }) => {
   // Add styles to document
   React.useEffect(() => {
     const styleSheet = document.createElement("style");
-    styleSheet.innerText = dragStyles;
+    styleSheet.innerText = hoverStyles;
     document.head.appendChild(styleSheet);
     return () => styleSheet.remove();
   }, []);
@@ -134,40 +134,18 @@ const Results = ({ attendanceData, onBack }) => {
     };
   };
 
-  const handleDragStart = (e, student) => {
-    // Set the dragged student data
-    e.dataTransfer.setData('application/json', JSON.stringify(student));
-    // Add a visual effect to the dragged element
-    e.target.classList.add('dragging');
-  };
+  const handleStatusToggle = (student) => {
+    if (!isEditMode) return;
 
-  const handleDragOver = (e) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-  };
-
-  const handleDrop = (e, newStatus) => {
-    e.preventDefault();
-    try {
-      const draggedStudent = JSON.parse(e.dataTransfer.getData('application/json'));
-      if (draggedStudent && draggedStudent.status !== newStatus) {
-        setStudents(prevStudents => {
-          return prevStudents.map(student => {
-            if (student.id === draggedStudent.id && student.rollNo === draggedStudent.rollNo) {
-              return { ...student, status: newStatus };
-            }
-            return student;
-          });
-        });
-      }
-    } catch (error) {
-      console.error('Error during drop:', error);
-    }
-  };
-
-  const handleDragEnd = (e) => {
-    // Remove visual effect
-    e.target.classList.remove('dragging');
+    const newStatus = student.status === 'present' ? 'absent' : 'present';
+    setStudents(prevStudents => {
+      return prevStudents.map(s => {
+        if (s.id === student.id && s.rollNo === student.rollNo) {
+          return { ...s, status: newStatus };
+        }
+        return s;
+      });
+    });
   };
 
   const stats = getStats();
@@ -332,20 +310,7 @@ const Results = ({ attendanceData, onBack }) => {
                   {stats.presentCount} Students
                 </span>
               </div>
-              <div
-                className="overflow-y-auto max-h-[400px] scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 pr-4 space-y-3 drop-target"
-                onDragOver={(e) => {
-                  handleDragOver(e);
-                  e.currentTarget.classList.add('drag-over');
-                }}
-                onDragLeave={(e) => {
-                  e.currentTarget.classList.remove('drag-over');
-                }}
-                onDrop={(e) => {
-                  e.currentTarget.classList.remove('drag-over');
-                  handleDrop(e, 'present');
-                }}
-              >
+              <div className="overflow-y-auto max-h-[400px] scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 pr-4 space-y-3">
                 {students
                   .filter(student => student.status === 'present')
                   .map((student, index) => (
@@ -354,12 +319,10 @@ const Results = ({ attendanceData, onBack }) => {
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.1 }}
-                      className={`p-4 rounded-xl bg-green-50 border border-green-100 hover:shadow-md transition-all flex items-center justify-between group ${
-                        isEditMode ? 'cursor-move hover:scale-105' : ''
-                      } draggable-item`}
-                      draggable={isEditMode}
-                      onDragStart={(e) => handleDragStart(e, student)}
-                      onDragEnd={handleDragEnd}
+                      onClick={() => handleStatusToggle(student)}
+                      className={`p-4 rounded-xl bg-green-50 border border-green-100 flex items-center justify-between group student-card ${
+                        isEditMode ? 'edit-mode' : ''
+                      }`}
                     >
                       <div className="flex items-center gap-4">
                         <div className="w-10 h-10 rounded-full bg-green-200 flex items-center justify-center text-green-700 font-medium">
@@ -376,9 +339,11 @@ const Results = ({ attendanceData, onBack }) => {
                         <span className="w-3 h-3 rounded-full bg-green-500"></span>
                         <span className="text-green-700 font-medium">Present</span>
                         {isEditMode && (
-                          <svg className="w-5 h-5 ml-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l4-4 4 4m0 6l-4 4-4-4" />
-                          </svg>
+                          <div className="ml-2 p-1 rounded-full bg-gray-100">
+                            <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m-8 4H4m0 0l4 4m-4-4l4-4" />
+                            </svg>
+                          </div>
                         )}
                       </div>
                     </motion.div>
@@ -413,20 +378,7 @@ const Results = ({ attendanceData, onBack }) => {
                   {stats.absentCount} Students
                 </span>
               </div>
-              <div
-                className="overflow-y-auto max-h-[400px] scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 pr-4 space-y-3 drop-target"
-                onDragOver={(e) => {
-                  handleDragOver(e);
-                  e.currentTarget.classList.add('drag-over');
-                }}
-                onDragLeave={(e) => {
-                  e.currentTarget.classList.remove('drag-over');
-                }}
-                onDrop={(e) => {
-                  e.currentTarget.classList.remove('drag-over');
-                  handleDrop(e, 'absent');
-                }}
-              >
+              <div className="overflow-y-auto max-h-[400px] scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 pr-4 space-y-3">
                 {students
                   .filter(student => student.status === 'absent')
                   .map((student, index) => (
@@ -435,12 +387,10 @@ const Results = ({ attendanceData, onBack }) => {
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.1 }}
-                      className={`p-4 rounded-xl bg-red-50 border border-red-100 hover:shadow-md transition-all flex items-center justify-between group ${
-                        isEditMode ? 'cursor-move hover:scale-105' : ''
-                      } draggable-item`}
-                      draggable={isEditMode}
-                      onDragStart={(e) => handleDragStart(e, student)}
-                      onDragEnd={handleDragEnd}
+                      onClick={() => handleStatusToggle(student)}
+                      className={`p-4 rounded-xl bg-red-50 border border-red-100 flex items-center justify-between group student-card ${
+                        isEditMode ? 'edit-mode' : ''
+                      }`}
                     >
                       <div className="flex items-center gap-4">
                         <div className="w-10 h-10 rounded-full bg-red-200 flex items-center justify-center text-red-700 font-medium">
@@ -457,9 +407,11 @@ const Results = ({ attendanceData, onBack }) => {
                         <span className="w-3 h-3 rounded-full bg-red-500"></span>
                         <span className="text-red-700 font-medium">Absent</span>
                         {isEditMode && (
-                          <svg className="w-5 h-5 ml-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l4-4 4 4m0 6l-4 4-4-4" />
-                          </svg>
+                          <div className="ml-2 p-1 rounded-full bg-gray-100">
+                            <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m-8 4H4m0 0l4 4m-4-4l4-4" />
+                            </svg>
+                          </div>
                         )}
                       </div>
                     </motion.div>
