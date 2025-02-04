@@ -119,23 +119,23 @@ const StudentCard = React.memo(({ student, onSwipe, style }) => {
         <div className="absolute bottom-12 left-0 right-0 flex justify-between px-24">
           <button
             onClick={() => handleButtonClick('absent')}
-            className={`text-3xl font-bold text-red-500 transition-opacity duration-200 hover:text-red-600
-              ${dragDirection === 'left' ? 'opacity-100' : 'opacity-30'}`}
             disabled={isAnimating}
+            className={`text-3xl font-bold text-red-500 transition-all duration-200 hover:text-red-600
+              ${dragDirection === 'left' ? 'opacity-100' : 'opacity-30'}
+              ${isAnimating ? 'cursor-not-allowed' : 'cursor-pointer'}`}
           >
             ← ABSENT
           </button>
           <button
             onClick={() => handleButtonClick('present')}
-            className={`text-3xl font-bold text-green-500 transition-opacity duration-200 hover:text-green-600
-              ${dragDirection === 'right' ? 'opacity-100' : 'opacity-30'}`}
             disabled={isAnimating}
+            className={`text-3xl font-bold text-green-500 transition-all duration-200 hover:text-green-600
+              ${dragDirection === 'right' ? 'opacity-100' : 'opacity-30'}
+              ${isAnimating ? 'cursor-not-allowed' : 'cursor-pointer'}`}
           >
             PRESENT →
           </button>
         </div>
-
-
       </div>
     </motion.div>
   );
@@ -145,87 +145,74 @@ const AttendanceScreen = () => {
   const location = useLocation();
   const [students, setStudents] = useState([]);
 
-  // Memoize the filtered students calculation
-  const getFilteredStudents = useCallback((selectedClass, rollRange, batch) => {
+  useEffect(() => {
+    // Get the selected class and roll range from the location state
+    const selectedClass = location.state?.selectedClass || 'classA';
+    const rollRange = location.state?.rollRange;
+
+    // Get students from the selected class within the roll range and add status field
     let classStudents = studentData[selectedClass];
 
-    if (rollRange?.start && rollRange?.end) {
-      if (batch === 'custom') {
-        return classStudents.filter(student => {
+    // Filter students based on range if provided
+    if (rollRange && rollRange.start && rollRange.end) {
+      if (location.state?.batch === 'custom') {
+        // For custom range - filter by actual roll numbers
+        classStudents = classStudents.filter(student => {
           const rollNo = parseInt(student.rollNo.replace(/[^\d]/g, ''));
           return rollNo >= rollRange.start && rollNo <= rollRange.end;
         });
+      } else {
+        // For full class - filter by serial numbers (original logic)
+        classStudents = classStudents.filter(student => {
+          const serialNo = parseInt(student.serialNo);
+          return serialNo >= rollRange.start && serialNo <= rollRange.end;
+        });
       }
-      return classStudents.filter(student => {
-        const serialNo = parseInt(student.serialNo);
-        return serialNo >= rollRange.start && serialNo <= rollRange.end;
-      });
     }
-    return classStudents;
-  }, []);
 
-  useEffect(() => {
-    const selectedClass = location.state?.selectedClass || 'classA';
-    const rollRange = location.state?.rollRange;
-    const batch = location.state?.batch;
-
-    const filteredStudents = getFilteredStudents(selectedClass, rollRange, batch);
-
-    // Use a single map operation for better performance
-    setStudents(filteredStudents.map(student => ({
+    // Map students with status
+    classStudents = classStudents.map(student => ({
       ...student,
       status: null
-    })));
-  }, [location.state?.selectedClass, location.state?.rollRange, location.state?.batch, getFilteredStudents]);
+    }));
+
+    setStudents(classStudents);
+  }, [location.state?.selectedClass, location.state?.rollRange]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isCompleted, setIsCompleted] = useState(false);
   const [history, setHistory] = useState([]);
 
-  const handleSwipe = useCallback((status) => {
+  const handleSwipe = (status) => {
     setStudents((prevStudents) => {
-      // Only store the changed student and index in history for better memory usage
-      setHistory(prev => [...prev, {
-        studentIndex: currentIndex,
-        previousStatus: prevStudents[currentIndex].status
-      }]);
-
       const newStudents = [...prevStudents];
       newStudents[currentIndex] = { ...newStudents[currentIndex], status };
+      // Save to history
+      setHistory(prev => [...prev, {
+        students: [...prevStudents],
+        currentIndex
+      }]);
       return newStudents;
     });
 
-    setCurrentIndex(prevIndex => {
-      if (prevIndex < students.length - 1) {
-        return prevIndex + 1;
-      } else {
-        setIsCompleted(true);
-        return prevIndex;
-      }
-    });
-  }, [currentIndex, students.length]);
+    if (currentIndex < students.length - 1) {
+      setCurrentIndex(currentIndex + 1);
+    } else {
+      setIsCompleted(true);
+    }
+  };
 
-  const handleUndo = useCallback(() => {
+  const handleUndo = () => {
     if (history.length > 0) {
       const lastState = history[history.length - 1];
-
-      setStudents(prevStudents => {
-        const newStudents = [...prevStudents];
-        newStudents[lastState.studentIndex] = {
-          ...newStudents[lastState.studentIndex],
-          status: lastState.previousStatus
-        };
-        return newStudents;
-      });
-
-      setCurrentIndex(lastState.studentIndex);
+      setStudents(lastState.students);
+      setCurrentIndex(lastState.currentIndex);
       setHistory(prev => prev.slice(0, -1));
     }
-  }, [history]);
+  };
 
-  // Memoize progress calculation
-  const progress = useMemo(() => {
+  const getProgress = () => {
     return ((currentIndex) / students.length) * 100;
-  }, [currentIndex, students.length]);
+  };
 
   if (isCompleted) {
     return <Results
@@ -245,12 +232,12 @@ const AttendanceScreen = () => {
         <motion.div
           className="h-full bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 relative"
           initial={{ width: 0 }}
-          animate={{ width: `${progress}%` }}
-          transition={{ duration: 0.3, ease: "easeOut" }}
+          animate={{ width: `${getProgress()}%` }}
+          transition={{ duration: 0.5 }}
         >
           <div className="absolute inset-0 flex items-center justify-end pr-8">
             <span className="text-4xl font-bold text-white">
-              {Math.round(progress)}%
+              {Math.round(getProgress())}%
             </span>
           </div>
         </motion.div>
