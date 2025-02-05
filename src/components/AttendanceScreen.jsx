@@ -45,8 +45,8 @@ const StudentCard = React.memo(({ student, onSwipe, style }) => {
     <motion.div
       drag={!isAnimating ? "x" : false}
       dragConstraints={{ left: 0, right: 0 }}
-      dragElastic={0.9}
-      dragTransition={{ bounceStiffness: 300, bounceDamping: 20 }}
+      dragElastic={0.7}
+      dragTransition={{ bounceStiffness: 400, bounceDamping: 25 }}
       onDragEnd={(e, { offset }) => {
         const swipe = offset.x;
         if (Math.abs(swipe) > 100 && !isAnimating) {
@@ -64,7 +64,7 @@ const StudentCard = React.memo(({ student, onSwipe, style }) => {
           isAnimating && dragDirection === 'left' ? 'translateX(-120%)' : 'none'}
           scale(${isAnimating ? 0.98 : 1})
         `,
-        transition: 'transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)'
+        transition: 'all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)'
       }}
       onDrag={(e, { offset }) => {
         if (!isAnimating) {
