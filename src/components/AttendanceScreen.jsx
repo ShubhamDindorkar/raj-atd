@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLocation } from 'react-router-dom';
 import Results from './Results';
-import studentData from '../studentData.json';
+import { getDatabase, ref, get, child } from "firebase/database";
+import { app } from '../firebase';
 
 const StudentCard = React.memo(({ student, onSwipe, style }) => {
   const [dragDirection, setDragDirection] = useState(null);
@@ -146,37 +147,66 @@ const AttendanceScreen = () => {
   const [students, setStudents] = useState([]);
 
   useEffect(() => {
-    // Get the selected class and roll range from the location state
-    const selectedClass = location.state?.selectedClass || 'classA';
-    const rollRange = location.state?.rollRange;
+    const fetchStudents = async () => {
+      try {
+        // Get the selected class and roll range from the location state
+        const selectedClass = location.state?.selectedClass || 'classA';
+        const rollRange = location.state?.rollRange;
 
-    // Get students from the selected class within the roll range and add status field
-    let classStudents = studentData[selectedClass];
+        console.log('Fetching students for class:', selectedClass);
+        console.log('Roll range:', rollRange);
 
-    // Filter students based on range if provided
-    if (rollRange && rollRange.start && rollRange.end) {
-      if (location.state?.batch === 'custom') {
-        // For custom range - filter by actual roll numbers
-        classStudents = classStudents.filter(student => {
-          const rollNo = parseInt(student.rollNo.replace(/[^\d]/g, ''));
-          return rollNo >= rollRange.start && rollNo <= rollRange.end;
-        });
-      } else {
-        // For full class - filter by serial numbers (original logic)
-        classStudents = classStudents.filter(student => {
-          const serialNo = parseInt(student.serialNo);
-          return serialNo >= rollRange.start && serialNo <= rollRange.end;
-        });
+        // Get reference to the database
+        const database = getDatabase(app);
+        const dbRef = ref(database);
+
+        // Fetch students data from Firebase
+        const snapshot = await get(child(dbRef, selectedClass));
+
+        console.log('Raw data from Firebase:', snapshot.val());
+
+        if (snapshot.exists()) {
+          const rawData = snapshot.val();
+          console.log('Data structure:', typeof rawData, Array.isArray(rawData));
+
+          // Handle both array and object formats
+          let classStudents = Array.isArray(rawData) ? rawData : Object.values(rawData);
+
+          // Filter students based on range if provided
+          if (rollRange && rollRange.start && rollRange.end) {
+            if (location.state?.batch === 'custom') {
+              // For custom range - filter by actual roll numbers
+              classStudents = classStudents.filter(student => {
+                const rollNo = parseInt(student.rollNo.replace(/[^\d]/g, ''));
+                return rollNo >= rollRange.start && rollNo <= rollRange.end;
+              });
+            } else {
+              // For full class - filter by serial numbers (original logic)
+              classStudents = classStudents.filter(student => {
+                const serialNo = parseInt(student.serialNo);
+                return serialNo >= rollRange.start && serialNo <= rollRange.end;
+              });
+            }
+          }
+
+          // Map students with status
+          classStudents = classStudents.map(student => ({
+            ...student,
+            status: null
+          }));
+
+          setStudents(classStudents);
+        } else {
+          console.log("No data available");
+          setStudents([]);
+        }
+      } catch (error) {
+        console.error("Error fetching students:", error);
+        setStudents([]);
       }
-    }
+    };
 
-    // Map students with status
-    classStudents = classStudents.map(student => ({
-      ...student,
-      status: null
-    }));
-
-    setStudents(classStudents);
+    fetchStudents();
   }, [location.state?.selectedClass, location.state?.rollRange]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isCompleted, setIsCompleted] = useState(false);
