@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import TeacherManagement from './admin/TeacherManagement';
+import StudentManagement from './admin/StudentManagement';
 import LogoutButton from './common/LogoutButton';
 
 // Temporary placeholder components until we create them
@@ -17,10 +18,11 @@ const Settings = () => (
 );
 
 const AdminDashboard = () => {
-  const [activeTab, setActiveTab] = useState('teachers');
+  const [activeTab, setActiveTab] = useState('students');
   const adminData = JSON.parse(sessionStorage.getItem('adminData') || '{}');
 
   const tabs = [
+    { id: 'students', name: 'Students', icon: '👨‍🎓' },
     { id: 'teachers', name: 'Teachers', icon: '👥' },
     { id: 'subjects', name: 'Subjects', icon: '📚' },
     { id: 'attendance', name: 'Attendance', icon: '📊' },
@@ -29,6 +31,8 @@ const AdminDashboard = () => {
 
   const renderContent = () => {
     switch (activeTab) {
+      case 'students':
+        return <StudentManagement />;
       case 'teachers':
         return <TeacherManagement />;
       case 'subjects':
